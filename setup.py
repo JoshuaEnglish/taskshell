@@ -11,6 +11,5 @@ setup(
     packages=["taskshell", ],
     zip_safe=False,
     entry_points={
-        'console_scripts': ['s=taskshell.__main__:main'],
+        'console_scripts': ['s=taskshell.cli:main'],
     }
-)

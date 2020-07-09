@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar 17 14:28:15 2016
+Tasker
 
-@author: jenglish
+Extensible task-based todo-list manager based on Gina Trapani's todo.txt format.
+Extensions can be installed using entry points.
 """
+
 import os
 import sys
 import re
 import datetime
 import logging
 import textwrap
+import pkg_resources
 
 from operator import itemgetter, attrgetter
 from collections import defaultdict, Counter
@@ -18,16 +21,10 @@ from configparser import ConfigParser, ExtendedInterpolation
 
 import colorama
 
-__version__ = "1.6.dev"
-__updated__ = "2017-09-29"
+__version__ = "2.0.dev"
+__updated__ = "2020-07-01"
 __history__ = """
-1.1 listing tasks is now case insensitive
-1.2 Filtering by (p) matches against the priority
-1.3 Fixed bug where notes added in TaskLib.prioritize_task were added as
-    a list, not as a string.
-1.4 Changed theme to an option to support multiple themes
-1.5 Fixed bug where list -c failed
-1.6 Added Show Task Hook to allow plugins to refine filtering of tasks
+
 """
 
 DEFAULT_CONFIG = ConfigParser(interpolation=ExtendedInterpolation())
@@ -201,19 +198,36 @@ def include_task(filterop, filters, task):
 
 
 class TaskLib(object):
+    """TaskLib
 
+    Main application.
+    On load, looks for all entry_points of 'tasker_library' and creates
+    a local instance of those libraries. Also assigns itself as the 
+    ._tasklib attribute on all new libraries
+    """
     def __init__(self, config=None):
         super().__init__()
 
-        self.config = config = config or DEFAULT_CONFIG
-        print(self.config.sections())
-
-        self.extension_hiders = {}
-
         self.log = logging.getLogger('tasklib')
 
-        self._textwrapper = None
+        self.config = config = config or DEFAULT_CONFIG
+        if not self.config['Files']['tasker-dir']:
+            self.config['Files']['tasker-dir'] = os.path.join(
+                    os.path.expanduser('~'), 
+                    'tasker')
+            self.log.info(
+                'setting default tasker-dir %s', 
+                self.config['Files']['tasker-dir'])
+        self.extension_hiders = {}
+        self.libraries = {}
+        for entry_point in pkg_resources.iter_entry_points('tasker_library'):
+            libclass = entry_point.load()
+            self.libraries[entry_point.name] = libclass(
+                    self.config['Files']['tasker-dir'])
+            self.libraries[entry_point.name]._tasklib = self
 
+        self._textwrapper = None
+        self.log.debug('tasker-dir %s', config['Files']['tasker-dir'])
         if not os.path.exists(config['Files']['tasker-dir']):
             try:
                 os.mkdir(config['Files']['tasker-dir'])
@@ -231,6 +245,30 @@ class TaskLib(object):
                 fd.close()
 
         self.theme = {}
+        # dictionary of PRI: Color Descriptors
+
+        self.queue = []
+        # list of (function name, text)
+
+    def set_theme(self, theme_name=None):
+        '''set_theme(name) 
+        Applies format-strings from the local configuration file
+
+        '''
+
+        if not theme_name:
+            return
+        theme_name = theme_name.title()
+        if theme_name == 'None':
+            self.theme = {}
+            return
+
+        config_name = f"Theme: {theme_name}"
+        if self.config.has_section(config_name):
+            self.log.info('Setting %s color theme', theme_name)
+            self.theme = dict((k.title(), v) for k,v in self.config.items(config_name))
+        else:
+            self.log.info('Theme not found: %s', theme_name)
 
     def get_extensions_to_hide(self):
         """get_extensions_to_hide()
@@ -303,22 +341,39 @@ class TaskLib(object):
                 fp.write("{}{}".format(task_dict[linenum], '\n'))
         return TASK_OK, "{:d} Tasks written".format(len(task_dict))
 
-    def add_task(self, text):
-        """Adds a task to the current file"""
+    def add_task(self, text: str) -> Task:
+        """Adds a task to the current file.
+        Returns {idx: taskobj"""
         if not hasattr(self, 'tasks') or self.tasks is None:
             tasks = self.tasks = self.get_tasks(
                 self.config['Files']['task-path'])
         else:
             tasks = self.tasks
         this = Task.from_text(text)
+        idx = max(tasks) + 1;
+        tasks[idx] = this
 
-        with open(self.config['Files']['task-path'], 'a') as fp:
-            fp.write('{}{}'.format(this, '\n'))
-        print(len(tasks)+1, this)
-        return TASK_OK, str(this)
+        # check for on_add_task hooks
+        # these methods can functionally change the task
+        self.queue = []
+        for libname, library in self.libraries.items():
+            if hasattr(library, 'on_add_task'):
+                print(f'calling library.on_add_task ({libname})')
+                this = library.on_add_task(this)
+
+        # Issue: Plugins cannot add a task in response.
+        # tasks is a local dictionary being written, so new tasks
+        # are overridden
+        tasks[idx] = this
+        self.write_tasks(tasks, self.config['Files']['task-path'])
+        self.process_queue()
+
+        return {idx: this}
 
     def complete_task(self, tasknum, comment=None):
         """Completes an open task if task is not already closed.
+        returns TASK_OK, dictionary of {tasknum, taskobject} if successful,
+        returns TASK_ERROR, message if not
         """
         # Check if self.tasks has been established
         if not hasattr(self, 'tasks') or self.tasks is None:
@@ -339,12 +394,30 @@ class TaskLib(object):
         this.end = datetime.datetime.now()
         if comment:
             this.text += " # {}".format(comment)
-        tasks[tasknum] = this
 
+        # check for on_do_task hooks
+        # these methods can functionally change the task
+        self.queue = []
+        for libname, library in self.libraries.items():
+            if hasattr(library, 'on_do_task'):
+                print(f'calling library.on_do_task ({libname})')
+                this = library.on_do_task(this)
+
+        # Issue: Plugins cannot add a task in response.
+        # tasks is a local dictionary being written, so new tasks
+        # are overridden
+        tasks[tasknum] = this
         self.write_tasks(tasks, self.config['Files']['task-path'])
-        del self.tasks
-        print(tasks[tasknum])
-        return TASK_OK, tasks[tasknum]
+        self.process_queue()
+        return TASK_OK, {tasknum: tasks[tasknum]}
+
+    def process_queue(self):
+        if not hasattr(self, 'queue'):
+            return
+        for func, args in self.queue:
+            getattr(self, func)(**args)
+
+        self.queue = []
 
     def sort_tasks(self, by_pri=True, filters=None, filterop=None,
                    showcomplete=None, opendate=None, closedate=None,
@@ -429,11 +502,17 @@ class TaskLib(object):
             stuff = sorted(everything, key=itemgetter(0))
         return stuff
 
-    def list_tasks(self, by_pri=True, filters: str = None, filterop=None,
+    def prep_extension_hiders(self):
+        """create the regex substitutions to hide extensionss"""
+        for ext in self.get_extensions_to_hide():
+            if ext not in self.extension_hiders:
+                self.extension_hiders[ext] = re.compile(r"\s{%s:[^}]*}" % ext)
+
+    def list_tasks(self, by_pri=True, filters: str=None, filterop=None,
                    showcomplete=None, showext=None,
                    opendate=None, closedate=None, hidedate=None):
         """list_tasks([by_pri, filters, filterop, showcomplete, showuid)
-        Displays a list of tasks.
+        Returns a list of formatted tasks.
 
         :type by_pri: Boolean
         :param bool by_pri: If true, sorts by priority,
@@ -446,10 +525,9 @@ class TaskLib(object):
         :param date opendate: If not None, filters tasks opened on opendate
         :param date closedate: If not None, filters tasks closed on closedate
         :param date hidedate: The date to filter extensions marked to hide
-        :rtype: TASK_OK, None
+        :rtype: dictionary
         """
         showext = showext or False
-        count = 0
         # colorize = self.config['Tasker'].getboolean('use-color', True)
         shown_tasks = self.sort_tasks(by_pri, filters, filterop, showcomplete,
                                       opendate, closedate, hidedate)
@@ -457,13 +535,14 @@ class TaskLib(object):
                       'all' if showcomplete else 'open',
                       'by priority' if by_pri else 'by number')
 
-        for ext in self.get_extensions_to_hide():
-            if ext not in self.extension_hiders:
-                self.extension_hiders[ext] = re.compile(r"\s{%s:[^}]*}" % ext)
+        
+        self.prepare_extension_hiders()
 
         wrap_width = self.config['Tasker'].getint('wrap-width', 78)
         if not self._textwrapper:
             self._textwrapper = textwrap.TextWrapper(width=wrap_width)
+        
+        res = dict()
 
         if shown_tasks:
             maxid = max([a for a, b in shown_tasks])
@@ -486,15 +565,22 @@ class TaskLib(object):
             for idx, task in shown_tasks:
                 if not showext:
                     for ext in self.extension_hiders:
-                        task.text = self.extension_hiders[ext].sub("",
-                                                                   task.text)
-                print("{1:{0}d} {2}".format(idlen, idx,
-                                            wrapfunc(str(task))))
-                count += 1
-            print('{0}{1}'.format(colorama.Fore.RESET, '-'*(idlen+1)))
+                        task.text = self.extension_hiders[ext].sub(
+                                "", task.text)
+                res[idx] = wrapfunc(str(task))
+
+        count = len(res)
         msg = ("{:d} task{:s} shown".format(count, '' if count == 1 else 's'))
-        print(msg)
-        return TASK_OK, msg
+        self.log.info(msg)
+        return res
+
+    def hide_extensions(self, task: Task) -> str:
+        """accepts a task object and returns a string representation without
+        the extensions"""
+        text = str(task)
+        for ext in self.extension_hiders:
+            text = self.extension_hiders[ext].sub("", text)
+        return text
 
     def get_color(self, pri):
         color = self.theme.get(pri, colorama.Style.RESET_ALL)
@@ -511,8 +597,7 @@ class TaskLib(object):
         t.text = self.update_note(t.text, note)
         tasks[tasknum] = t
         self.write_tasks(tasks, self.config['Files']['task-path'])
-        print(tasknum, tasks[tasknum])
-        return TASK_OK, tasks[tasknum]
+        return TASK_OK, {tasknum: tasks[tasknum]}
 
     def update_note(self, text, note=None):
         """updates the note from a line of text. If note is None or blank,
@@ -543,13 +628,9 @@ class TaskLib(object):
 
         t = self.reprioritize_task(tasks[tasknum], priority)
         t.text = self.update_note(t.text, ' '.join(note))
-#        if note:
-#            text = re_note.sub('', t.text)
-#            t.text = '%s # %s' % (text, ' '.join(note).strip())
         tasks[tasknum] = t
         self.write_tasks(tasks, self.config['Files']['task-path'])
-        print(tasks[tasknum])
-        return TASK_OK, tasks[tasknum]
+        return TASK_OK, {tasknum: tasks[tasknum]}
 
     def write_current_tasks(self):
         """write the current tasks to the correct file"""
@@ -591,8 +672,7 @@ class TaskLib(object):
             tasks[tasknum].text = re_hide.sub(
                 " {hide:%s}" % hidedate.strftime(DATEFMT), tasks[tasknum].text)
         self.write_tasks(tasks, self.config['Files']['task-path'])
-        print(tasks[tasknum])
-        return TASK_OK, tasks[tasknum]
+        return TASK_OK, {tasknum: tasks[tasknum]}
 
     def unhide_task(self, tasknum):
         tasks = self.get_tasks(self.config['Files']['task-path'])
@@ -604,8 +684,7 @@ class TaskLib(object):
             return TASK_ERROR, "Cannot unhide completed task"
         tasks[tasknum].text = re_hide.sub("", tasks[tasknum].text)
         self.write_tasks(tasks, self.config['Files']['task-path'])
-        print(tasks[tasknum])
-        return TASK_OK, tasks[tasknum]
+        return TASK_OK, {tasknum: tasks[tasknum]}
 
     def build_task_dict(self, include_archive=False, only_archive=False):
         """build_task_dict(include_archive, only_archive)
