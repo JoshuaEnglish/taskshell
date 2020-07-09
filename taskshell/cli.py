@@ -288,8 +288,11 @@ class TaskCmd(minioncmd.BossCmd):
                 text = self.lib.hide_extensions(task)
             else:
                 text = str(task)
-            print("{3}{1:{0}d} {2}".format(idlen, key, text,
-                get_color(self.lib.get_color(task.priority))))
+            if task.complete:
+                color = get_color(self.lib.get_color('Closed'))
+            else:
+                color = get_color(self.lib.get_color(task.priority))
+            print("{3}{1:{0}d} {2}".format(idlen, key, text, color))
         print('{0}{1}'.format(colorama.Fore.RESET, '_'*(idlen+1)))
         print("{:d} task{:s} shown".format(len(taskdict),
                                            '' if len(taskdict) == 1 else 's'))
@@ -315,6 +318,15 @@ def main():
     for e_point in pkg_resources.iter_entry_points('tasker_minions'):
         minion = e_point.load()
         cli.add_minion(e_point.name, minion())
+        # the main library should have already loaded a library for the 
+        # plugin, if one exists.
+        # the minion should now have a master
+        print(cli.minions[e_point.name].master.lib.libraries.get(e_point.name))
+        print(cli.lib.libraries.get(e_point.name))
+        cli.minions[e_point.name].lib = cli.lib.libraries.get(e_point.name)
+#        BUG: Current instance allows me to create a CLI Minion, and a 
+#        library that tasklib can read, but there is no connection between
+#        the two.
 
     if args.interact:
         cli.cmdloop()

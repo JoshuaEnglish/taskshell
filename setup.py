@@ -7,9 +7,10 @@ setup(
     url='https://github.com/JoshuaEnglish/taskshell',
     author='Josh English',
     author_email='josh@joshuarenglish.com',
-    licence='GNU3',
+    license='GNU3',
     packages=["taskshell", ],
     zip_safe=False,
     entry_points={
         'console_scripts': ['s=taskshell.cli:main'],
     }
+    )

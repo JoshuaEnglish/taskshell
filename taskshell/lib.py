@@ -75,12 +75,6 @@ TASK_OK = 0
 TASK_ERROR = 1
 TASK_EXTENSION_ERROR = 2
 
-re_color = re.compile(r"""
-(?P<style>bright|dim|normal)\s
-(?P<fore>black|blue|cyan|green|lightblack|magenta|red|reset|white|yellow)\s
-on\s(?P<back>black|blue|cyan|green|lightblack|magenta|red|reset|white|yellow)
-""", re.VERBOSE + re.IGNORECASE)
-
 
 class Task(object):
     """Simple container for parsed tasks"""
@@ -253,7 +247,10 @@ class TaskLib(object):
     def set_theme(self, theme_name=None):
         '''set_theme(name) 
         Applies format-strings from the local configuration file
-
+        format strings are in the form of '<qualifier> <textcolor> ["on"
+        <backgroundcolor>'.
+        Themes are stored in the configuration file.
+        It is up to an application to determine how to display this data.
         '''
 
         if not theme_name:
