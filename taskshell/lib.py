@@ -202,7 +202,7 @@ class TaskLib(object):
     def __init__(self, config=None):
         super().__init__()
 
-        self.log = logging.getLogger('tasklib')
+        self.log = logging.getLogger('taskerLogger')
 
         self.config = config = config or DEFAULT_CONFIG
         if not self.config['Files']['tasker-dir']:

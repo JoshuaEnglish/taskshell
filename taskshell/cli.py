@@ -3,6 +3,9 @@ import argparse
 import pkg_resources
 import datetime
 import re
+import logging
+import logging.config
+import pathlib
 
 import colorama
 
@@ -10,6 +13,13 @@ import minioncmd
 
 from taskshell import (TaskLib, config, 
     TASK_OK, TASK_ERROR, TASK_EXTENSION_ERROR)
+
+logconfigpath = pathlib.Path(__file__).parent / 'logging.conf'
+
+logging.config.fileConfig(logconfigpath)
+
+logger = logging.getLogger('taskerLogger')
+
 
 def add_subparser(subparser):
     """add_subparser(subparser [,helpstr])
@@ -36,7 +46,8 @@ def add_subparser(subparser):
 
 
 def valid_date(string):
-    """Confirm dates in the arguments work as dates"""
+    """Confirm dates in the arguments work as dates, and allows for 
+    three strings: today, yesterday, and tomorrow"""
     if string.lower() == 'today':
         return datetime.date.today()
     elif string.lower() == 'yesterday':
@@ -48,6 +59,7 @@ def valid_date(string):
         return datetime.datetime.strptime(string, "%Y-%m-%d").date()
     except ValueError:
         msg = "Not a valid date: '{0}'.".format(string)
+        logger.error(msg)
         raise argparse.ArgumentTypeError(msg)
 
 
@@ -171,13 +183,10 @@ theme.add_argument('-n', '--no-color', action='store_const',
         dest='theme', const='none', help='removes colorization of output')
 
 feedback = parser.add_mutually_exclusive_group()
-feedback.add_argument('-d', '--debug', action='store_const',
-        const=2, dest='verbose', default=0,
-        help='show all debug messages')
-feedback.add_argument('-v', '--verbose', action='count', default=0,
+feedback.add_argument('-d', '--debug', action='store_true',
+        default=False, help='show all debug messages in the console')
+feedback.add_argument('-v', '--verbose', action='store_true', default=False,
         help='show more process details (can repeat)')
-feedback.add_argument('-q', '--quiet', action='count', default=0,
-        help='show fewer process details (can repeat)')
 
 
 re_color = re.compile("""
@@ -187,6 +196,7 @@ re_color = re.compile("""
 """, re.VERBOSE + re.IGNORECASE)
 
 def get_color(text):
+    """Convert a textLib theme string to a colorama color"""
     stuff = re_color.match(text).groupdict()
     style = stuff.get('style') or  ''
     if style.upper() == 'RESETALL':
@@ -209,6 +219,7 @@ def get_color(text):
     if back:
         res.append(getattr(colorama.Back, back.upper()))
     return ''.join(res)
+
 
 class TaskCmd(minioncmd.BossCmd):
     prompt = "tasker>"
@@ -281,13 +292,16 @@ class TaskCmd(minioncmd.BossCmd):
             print('Error:', td)
     
     def print_tasks(self, taskdict, showext=False):
+        if not taskdict:
+            print("No tasks found")
+            return
         idlen = len(str(max(taskdict)))
         self.lib.prep_extension_hiders()
         for key, task in taskdict.items():
             if not showext:
                 text = self.lib.hide_extensions(task)
             else:
-                text = str(task)
+                text = strtask
             if task.complete:
                 color = get_color(self.lib.get_color('Closed'))
             else:
@@ -300,6 +314,11 @@ class TaskCmd(minioncmd.BossCmd):
 def main():
     args = parser.parse_args()
     print(args)
+
+    if args.verbose:
+        logger.setLevel(logging.INFO)
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
 
     config.set('Tasker', 'wrap-behavior', args.wrap)
     config.set('Tasker', 'wrap-width', str(args.width))
