@@ -61,11 +61,7 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-tasker/plugins/workflows/*.workflow
-tasker/plugins/dashboards/*
-tasker/plugins/quotidia/*
-tasker/tasker.ini
-error.txt
+
 
 # VIM
 #.swo

@@ -44,7 +44,7 @@ DEFAULT_CONFIG.read([
 
 
 def save_config():
-    """Save DEFAULT_CONFIGuration to the local file"""
+    """Save configuariot to the local file"""
     with open(CONFIGPATH, 'w') as fp:
         DEFAULT_CONFIG.write(fp)
 
@@ -219,6 +219,8 @@ class TaskLib(object):
             self.libraries[entry_point.name] = libclass(
                     self.config['Files']['tasker-dir'])
             self.libraries[entry_point.name]._tasklib = self
+            # grab a list of extensions to hide
+
 
         self._textwrapper = None
         self.log.debug('tasker-dir %s', config['Files']['tasker-dir'])
@@ -347,7 +349,7 @@ class TaskLib(object):
         else:
             tasks = self.tasks
         this = Task.from_text(text)
-        idx = max(tasks) + 1;
+        idx = (max(tasks) + 1) if len(tasks) > 0 else 1
         tasks[idx] = this
 
         # check for on_add_task hooks
@@ -355,7 +357,7 @@ class TaskLib(object):
         self.queue = []
         for libname, library in self.libraries.items():
             if hasattr(library, 'on_add_task'):
-                print(f'calling library.on_add_task ({libname})')
+                self.log.debug(f'calling library.on_add_task ({libname})')
                 this = library.on_add_task(this)
 
         # Issue: Plugins cannot add a task in response.
@@ -397,7 +399,7 @@ class TaskLib(object):
         self.queue = []
         for libname, library in self.libraries.items():
             if hasattr(library, 'on_do_task'):
-                print(f'calling library.on_do_task ({libname})')
+                self.log.debug(f'calling library.on_do_task ({libname})')
                 this = library.on_do_task(this)
 
         # Issue: Plugins cannot add a task in response.
@@ -533,7 +535,7 @@ class TaskLib(object):
                       'by priority' if by_pri else 'by number')
 
         
-        self.prepare_extension_hiders()
+        self.prep_extension_hiders()
 
         wrap_width = self.config['Tasker'].getint('wrap-width', 78)
         if not self._textwrapper:

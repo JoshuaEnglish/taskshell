@@ -301,7 +301,7 @@ class TaskCmd(minioncmd.BossCmd):
             if not showext:
                 text = self.lib.hide_extensions(task)
             else:
-                text = strtask
+                text = str(task)
             if task.complete:
                 color = get_color(self.lib.get_color('Closed'))
             else:
