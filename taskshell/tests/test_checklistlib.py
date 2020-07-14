@@ -49,18 +49,18 @@ class ChecklistTestCase(unittest.TestCase):
         with open(CONFIG['Files']['task-path'], 'w') as fp:
             fp.write('')
 
-        self.test_lib = TaskLib(CONFIG)
-        self.check_lib = self.test_lib.libraries['checklist']
+        self.task_lib = TaskLib(CONFIG)
+        self.check_lib = self.task_lib.libraries['checklist']
 
     def tearDown(self):
         del self.check_lib
-        del self.test_lib
+        del self.task_lib
 
     def test_add_task_on_instantiation(self):
         '''Test that creating a checklist instance creates a new task as
         necessary'''
         self.check_lib.create_instance('test', **{'test': 'NewTask'})
-        tasks = self.test_lib.sort_tasks(filters="{cid:sb}")
+        tasks = self.task_lib.sort_tasks(filters="{cid:sb}")
         self.assertEqual(len(tasks), 1)
         generated_task = tasks[0][1]
         target_uid = generated_task.extensions.get('uid')
@@ -72,7 +72,7 @@ class ChecklistTestCase(unittest.TestCase):
     def test_complete_task_to_checklist(self):
         '''Test that completing a task in task_lib changes the checklist'''
         self.check_lib.create_instance('test', test='NewTask')
-        self.test_lib.complete_task(1)
+        self.task_lib.complete_task(1)
         self.assertTrue(self.check_lib._is_task_complete(
             self.check_lib._get_task('test', 'NewTask', 'sb')))
 
@@ -93,7 +93,7 @@ class ChecklistTestCase(unittest.TestCase):
             self.check_lib._get_task('test', 'NewTask', 'sb')))
         self.check_lib.complete_action('test', 'NewTask', 'sb', 1)
 
-        res = self.test_lib.sort_tasks(filters=['checklist'],
+        res = self.task_lib.sort_tasks(filters=['checklist'],
             showcomplete=True)
         task = res[0][1]
         self.assertTrue(task.complete, "Task was not marked as complete")

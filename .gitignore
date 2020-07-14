@@ -70,3 +70,4 @@ target/
 
 # Tasker local
 tasker.ini
+taskshell/tests/tmp/
