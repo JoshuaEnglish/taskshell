@@ -9,6 +9,7 @@ setup(
     author_email='josh@joshuarenglish.com',
     license='GNU3',
     packages=["taskshell", ],
+    install_requires=['colorama','lxml']
     zip_safe=False,
     entry_points={
         'console_scripts': ['s=taskshell.cli:main'],

@@ -104,6 +104,34 @@ class ChecklistCmd(minioncmd.MinionCmd):
             print('Created but probably broken')
         else:
             print('Created checklist for', idx)
+    
+    def do_opentasks(self, text):
+        '''Usage: opentasks CHECKLIST INSTANCE
+        List open tasks (collections of actions) for an instance of a checklist.
+        Also notes if the task has separate inputs or an information block.
+        '''
+        try: 
+            clist, inst, *junk = text.split(maxsplit=2)
+        except ValueError as E:
+            print(E)
+            return False
+        headers = ['ID', 'Name', 'Inputs', 'Info']
+        if clist not in self.lib.checklists:
+            print(f"No checklist named {clist}")
+            return False
+        instance = self.lib._get_instance(clist, inst)
+        if instance is None:
+            print(f"No instance '{inst}' found")
+            return False
+        print(clist, inst)
+        for gname, nodes in self.lib.get_open_tasks(clist, inst):
+            print(gname)
+            print('-'*len(gname))
+            stuff = [(node.get('id'), node.get('name'),
+                     str(node.find('input') is not None),
+                     str(node.find('information') is not None))
+                     for node in nodes]
+            lister.print_list(stuff, headers)
 
 
 class ChecklistLib(object):
@@ -349,6 +377,63 @@ class ChecklistLib(object):
                     self._tasklib.complete_task(tasks[0][0],
                         'marked as done from checklist')
         return GOOD, 'Marked complete'
+
+    def list_inputs(self, checklistaname, instance, task):
+        task = self._get_task(checklistname, instance, task)
+        if task is None:
+            return none
+        res = []
+        for idx, node in enumerate(task.findall('input'), 1):
+            res.append((idx, node.get('name'), node.text))
+        return res
+
+    def fill_input(self, checklistname, instance, task, number, value):
+        """Fills inputs on a checklist task.
+        Returns (Code, message) tuple.
+        """
+        self.log.info(f"Filling {value} into {subgroup} for {instance}")
+        tasknode = self._get_task(checklistname, instance, task)
+        if task is None:
+            msg = f"No task {task} in {instance} of {checklistname}"
+            self.log.error(msg)
+            return ERROR, msg
+        inputs = {}
+        for idx, node in enumerate(tasknode.findall('input'), 1):
+            inputs[idx] = node
+        if number not in inputs:
+            msg = f"No input numebr {number} in {task}"
+            self.log.error(msg)
+            return ERROR, msg
+        inputs[number].text = value
+        self.log.debug('Input %s recorded', value)
+        self._write_checklist(checklistname)
+        return GOOD, 'Input recorded'
+
+    def get_open_tasks(self, checklistname, checklistid):
+        """get_open_tasks(checklistname, checklistid)
+        Returns a list of (NAME, NODELIST) tuples, where NAME is the 
+        ID of the task, and NODELIST is a list of task nodes 
+        """
+        self.log.info('Listing open tasks for %s', checklistid)
+        if checklistname not in self.checklists:
+            self.log.error('No checklist name %s', checklistname)
+            return None
+        this = self.checklists[checklistname].find(
+            f'instance[@id="{checklistid}"]')
+        if this is None:
+            self.log.error('No %s checklist instance for %s',
+                checklistnaem, checklistid)
+            return False
+        groups = [(g.get('name'), g) for g in this.iterfind('phase')]
+        res = []
+        for gname, gnode in groups:
+            opentasks = [sg for sg in gnode.iterfind('task')
+                        if not self._is_task_complete(sg)]
+            if opentasks:
+                res.append((gname, opentasks))
+
+        return res
+
 
     def on_do_task(self, task):
         """check if the task is linked to a checklist task, and 

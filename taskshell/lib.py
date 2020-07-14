@@ -582,7 +582,7 @@ class TaskLib(object):
         return text
 
     def get_color(self, pri):
-        color = self.theme.get(pri, colorama.Style.RESET_ALL)
+        color = self.theme.get(pri, 'default')
         # self.log.debug('getting color for %s (%s)', pri, color)
         return color
 
