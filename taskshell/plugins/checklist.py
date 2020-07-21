@@ -2,6 +2,12 @@
 
 Plugin for tasker (taskshell, specfically) to manage repeatable checklists
 using an XML database.
+
+Checklists of a particular type are in a single file, so there will be a file
+for monthlyfinancereview.xml, or newhireprocess.xml, etc. 
+
+Checklists
+
 """
 
 import argparse
@@ -9,7 +15,7 @@ import pathlib
 import logging
 import copy
 import datetime
-from string import Template
+import warnings
 
 try:
     from lxml import etree as ET
@@ -133,6 +139,81 @@ class ChecklistCmd(minioncmd.MinionCmd):
                      for node in nodes]
             lister.print_list(stuff, headers)
 
+    def do_actions(self, text):
+        """Usage: actions CHECKLIST INSTANCE TASKID
+        List actions under a particular task
+        """
+        try:
+            clist, inst, taskid, *junk = text.split(maxsplit=3)
+        except ValueError as E:
+            print(E)
+            return False
+        task = self.lib._get_task(clist, inst, taskid)
+        if task is None:
+            print("No task found")
+            return False
+
+        lister.print_list(
+            [(str(idx), node.text, node.get('completed'), 
+              node.get('dated', 'false'))
+             for idx, node in enumerate(task.findall('action'), 1)],
+            "# Action Completed Dated".split())
+
+    def do_getinfo(self, text):
+        """Usage: getinfo CHECKLIST INSTANCE TASKID
+        List information about a task.
+        """
+        try: 
+            clist, inst, taskid, *junk = text.split(maxsplit=3)
+        except ValueError as E:
+            print(E)
+            return False
+        task = self.lib._get_task(clist, inst, taskid)
+        if task is None:
+            print("No task found")
+            return False
+        if task.find('information') is None:
+            print("No information block")
+            return False
+        for info in task.findall('information'):
+            print(info.text)
+
+    def do_fill(self, text):
+        """Usage: fill CHECKLIST INSTANCE SUBGROUP NUMBER VALUE"""
+        try:
+            clist, inst, taskid, num, *value = text.split(maxsplit=4)
+        except ValueError as E:
+            print(E)
+            return False
+        res, msg = self.lib.fill_input(
+            clist, inst, taskid, int(num), ''.join(value))
+        if res:
+            print(res, msg)
+        else:
+            print(msg)
+
+    def do_do(self, text):
+        """Usage: do CHECKLIST INSTANCE TASKID NUMBER [DATE]
+        Mark a specific action as complete. Will default to today's date
+        if date is required but no date given.
+        Date should be in ISO format: YYYY-MM-DD
+        """
+        try:
+            clist, inst, taskid, num, *stuff = text.split(maxsplit=4)
+        except ValueError as E:
+            print(E)
+            return False
+        if len(stuff) == 0:
+            stuff.append(datetime.date.today().isoformat())
+        try:
+            datetime.date.fromisoformat(stuff[0])
+            this_date = stuff[0]
+        except (ValueError, TypeError):
+            thisdate = datetime.date.today().isoformat()
+        res, msg = self.lib.complete_action(clist, inst, taskid, int(num),
+            this_date)
+        print(res, msg)
+
 
 class ChecklistLib(object):
     def __init__(self, directory):
@@ -214,8 +295,6 @@ class ChecklistLib(object):
 
     def _get_instance(self, checklistname, instanceid):
         '''return the instance node if it exists'''
-        self.log.debug('Getting %s instance of %s',
-                        instanceid, checklistname)
         if checklistname not in self.checklists:
             self.log.error('No checklist named %s', checklistname)
             return None
@@ -232,8 +311,6 @@ class ChecklistLib(object):
         """return the node for a task. Return None if no
         task is found"""
 
-        self.log.debug('Getting %s tasks of %s (%s)',
-                        taskid, instanceid, checklistname)
         this = self._get_instance(checklistname, instanceid)
         if this is None:
             return None
@@ -247,7 +324,6 @@ class ChecklistLib(object):
         """create_instance(checklistname, **kwargs)
         Create a new instace of a checklist
         """
-        self.log.debug('Trying to create %s instance', checklistname)
         if checklistname not in self.checklists:
             self.log.error('No checklist named %s', checklistname)
             return BAD, "No checklist named %s" % checklistname
@@ -262,7 +338,6 @@ class ChecklistLib(object):
         newheader = candidate.find('header')
         for key, value in kwargs.items():
             if key in emptykeys:
-                self.log.debug('setting header value for %s: %s', key, value)
                 newheader.find(f'input[@key="{key}"]').text = value
                 emptykeys.remove(key)
             else:
@@ -274,30 +349,27 @@ class ChecklistLib(object):
             return BAD, f"Checklist header missing {emptykeys}"
         idnode = newheader.find('input[@idsource="true"]')
         newid = ''.join(idnode.text.split())
-        self.log.debug('Setting new candidate id to %s', newid)
         candidate.set('id', ''.join(newid))
-        self.log.debug('Checking for duplicate IDs')
         current_ids = [i.get('id') for i in this.findall('instance')]
         if newid in current_ids:
             msg = 'Checklist id%s already exists', newid
             self.log.error(msg)
             return BAD, msg
-        self.log.debug('Setting unset completed and dated actions')
         for action in candidate.findall(".//action"):
             if 'completed' not in action.attrib:
                 action.attrib['completed'] = 'false'
             if 'dated' not in action.attrib:
                 action.attrib['dated'] = 'false'
 
-        self.log.debug('Creating tasks for checklist')
         for task in candidate.findall(".//task"):
-            for pi in task.xpath("//processing-instruction()"):
-                tag, text = pi.tag, pi.text
+            for pi in task.xpath("processing-instruction()"):
+                tag, text = pi.target, pi.text
+                if tag != 'oncreate':
+                    continue
                 command, text = pi.text.split(maxsplit=1)
                 added_task = False
                 if command == 'add_task':
-                    t = Template(pi.text)
-                    text = t.substitute(instanceid=newid)
+                    text = pi.text.format(instanceid=newid)
 
                     cntag = f"{{cn:{checklistname}}}"
                     cidtag = f"{{cid:{newid}}}"
@@ -364,9 +436,11 @@ class ChecklistLib(object):
                 return ERROR, msg
         else:
             actions[number].set('completed', 'true')
-        self.log.debug('Mark successful')
         self._write_checklist(checklistname)
-        # now find any attached tasks
+        self.complete_task(task)
+        return GOOD, 'Marked complete'
+
+    def complete_task(self, task):
         if self._is_task_complete(task):
             if task.attrib.get('uid'):
                 tasks = self._tasklib.sort_tasks(
@@ -376,7 +450,6 @@ class ChecklistLib(object):
                         'Checklist task complete, marking linked tast as done')
                     self._tasklib.complete_task(tasks[0][0],
                         'marked as done from checklist')
-        return GOOD, 'Marked complete'
 
     def list_inputs(self, checklistaname, instance, task):
         task = self._get_task(checklistname, instance, task)
@@ -391,7 +464,7 @@ class ChecklistLib(object):
         """Fills inputs on a checklist task.
         Returns (Code, message) tuple.
         """
-        self.log.info(f"Filling {value} into {subgroup} for {instance}")
+        self.log.info(f"Filling {value} into {task} for {instance}")
         tasknode = self._get_task(checklistname, instance, task)
         if task is None:
             msg = f"No task {task} in {instance} of {checklistname}"
@@ -405,8 +478,8 @@ class ChecklistLib(object):
             self.log.error(msg)
             return ERROR, msg
         inputs[number].text = value
-        self.log.debug('Input %s recorded', value)
         self._write_checklist(checklistname)
+        self.complete_task(tasknode)
         return GOOD, 'Input recorded'
 
     def get_open_tasks(self, checklistname, checklistid):
@@ -435,7 +508,7 @@ class ChecklistLib(object):
         return res
 
 
-    def on_do_task(self, task):
+    def on_complete_task(self, task):
         """check if the task is linked to a checklist task, and 
         mark that action as complete if necessary"""
         uid = task.extensions['uid']
@@ -446,7 +519,9 @@ class ChecklistLib(object):
             if len(local_tasks) == 0:
                 continue
             # at this point we've found at least one task, but should only be one
+            self.log.debug('local_tasks %s', local_tasks)
             for local_task in local_tasks:
+                self.log.debug('local_task: %s', str(local_task))
                 for action in local_task.findall('action'):
                     if action.get('dated', False) == 'true':
                         action.set('completed', datetime.date.today().isoformat())
@@ -458,8 +533,8 @@ class ChecklistLib(object):
                     if inode.text is None:
                         inputs_okay = False
                 if not inputs_okay:
-                    self.log.warning(
-                            'Completed task has inputs that need to be filled in')
+                    warnings.warn(
+                        'Completed task has inputs that need to be filled in')
             self._write_checklist(checklist)
 
         ### sample code on adding a new task in response to closing a task

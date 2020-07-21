@@ -19,8 +19,6 @@ from collections import defaultdict, Counter
 from functools import partial
 from configparser import ConfigParser, ExtendedInterpolation
 
-import colorama
-
 __version__ = "2.0.dev"
 __updated__ = "2020-07-01"
 __history__ = """
@@ -50,7 +48,7 @@ def save_config():
 
 
 TIMEFMT = '%Y-%m-%dT%H:%M:%S'
-IDFMT = '%H%M%S%d%m%y'
+IDFMT = '%H%M%S%f%d%m%y'
 DATEFMT = '%Y-%m-%d'
 
 re_task = re.compile(
@@ -394,13 +392,16 @@ class TaskLib(object):
         if comment:
             this.text += " # {}".format(comment)
 
-        # check for on_do_task hooks
+        # check for on_complete_task hooks
         # these methods can functionally change the task
         self.queue = []
         for libname, library in self.libraries.items():
-            if hasattr(library, 'on_do_task'):
-                self.log.debug(f'calling library.on_do_task ({libname})')
-                this = library.on_do_task(this)
+            if hasattr(library, 'on_complete_task'):
+                self.log.debug(f'calling library.on_complete_task ({libname})')
+                this = library.on_complete_task(this)
+                if this is None:
+                    self.log.error("Plugin %s.on_complete_task failed to return task object", libname)
+                    raise RuntimeError("Plugin failed to return task in on_complete_task")
 
         # Issue: Plugins cannot add a task in response.
         # tasks is a local dictionary being written, so new tasks
@@ -533,7 +534,6 @@ class TaskLib(object):
         self.log.info('Listing %s tasks %s',
                       'all' if showcomplete else 'open',
                       'by priority' if by_pri else 'by number')
-
         
         self.prep_extension_hiders()
 

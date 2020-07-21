@@ -10,6 +10,10 @@ Welcome to Tasker's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   tasklib
+   underthehood
+   plugins
+   checklistplugin
 
 
 Indices and tables

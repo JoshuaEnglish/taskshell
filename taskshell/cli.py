@@ -340,12 +340,8 @@ def main():
         # the main library should have already loaded a library for the 
         # plugin, if one exists.
         # the minion should now have a master
-        print(cli.minions[e_point.name].master.lib.libraries.get(e_point.name))
-        print(cli.lib.libraries.get(e_point.name))
-        cli.minions[e_point.name].lib = cli.lib.libraries.get(e_point.name)
-#        BUG: Current instance allows me to create a CLI Minion, and a 
-#        library that tasklib can read, but there is no connection between
-#        the two.
+        if e_point.name in cli.lib.libraries:
+            cli.minions[e_point.name].lib = cli.lib.libraries.get(e_point.name)
 
     if args.interact:
         cli.cmdloop()
