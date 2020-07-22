@@ -362,30 +362,13 @@ class ChecklistLib(object):
                 action.attrib['dated'] = 'false'
 
         for task in candidate.findall(".//task"):
-            for pi in task.xpath("processing-instruction()"):
-                tag, text = pi.target, pi.text
-                if tag != 'oncreate':
-                    continue
+            for pi in task.xpath("processing-instruction('oncreate')"):
                 command, text = pi.text.split(maxsplit=1)
                 added_task = False
                 if command == 'add_task':
-                    text = pi.text.format(instanceid=newid)
-
-                    cntag = f"{{cn:{checklistname}}}"
-                    cidtag = f"{{cid:{newid}}}"
-                    steptag = f"{{cstep:{pi.getparent().get('id')}}}"
-
-                    for tag in [cntag, cidtag, steptag]:
-                        if tag not in text:
-                            text = text + " " + tag
-                    rdict = self._tasklib.add_task(text)                
-                    for key, val in rdict.items():
-                        if added_task is True:
-                            self.log.error("Cannot add task from checklist instantiation %s", text)
-                            break
-                        uuid = val.extensions['uid']
-                        task.attrib['uid'] = str(uuid)
-                        added_task = True
+                    res = self.add_task_to_tasklist(pi)
+                    if res is None:
+                        self.log.error('Did not successfully add task during oncreate instruction')
         
         # ready to add the new node to the checklist
         this.append(candidate)
@@ -436,12 +419,13 @@ class ChecklistLib(object):
                 return ERROR, msg
         else:
             actions[number].set('completed', 'true')
-        self._write_checklist(checklistname)
         self.complete_task(task)
+        self._write_checklist(checklistname)
         return GOOD, 'Marked complete'
 
     def complete_task(self, task):
         if self._is_task_complete(task):
+            # complete the corresponding main task
             if task.attrib.get('uid'):
                 tasks = self._tasklib.sort_tasks(
                     filters=[f"uid:{task.attrib.get('uid')}"])
@@ -450,7 +434,58 @@ class ChecklistLib(object):
                         'Checklist task complete, marking linked tast as done')
                     self._tasklib.complete_task(tasks[0][0],
                         'marked as done from checklist')
+            # process any oncomplete processing instructions
+            for pi in task.xpath('processing-instruction("oncomplete")'):
+                command, target = pi.text.split(maxsplit=1)
+                if command == 'unlock':
+                    self.unlock_task(
+                        self._get_task(
+                            task.getparent().getparent().get('name'),
+                            task.getparent().getparent().get('id'),
+                            target))
 
+    def unlock_task(self, task):
+        task.set('status', 'open')
+        for pi in task.xpath('processing-instruction("onopen")'):
+            command, text = pi.text.split(maxsplit=1)
+            if command == 'add_task':
+                res = self.add_task_to_tasklist(pi)
+                if res is None:
+                    self.log.error('Did not successfully create main task during unlock instruction')
+
+    def add_task_to_tasklist(self, pi):
+        """if the processing instruction is either oncreate or onopen,
+        add a task to the task lib and return the uid of the new task.
+        Returns None if it can't be added."""
+        command, text = pi.text.split(maxsplit=1)
+        if pi.target not in ['oncreate', 'onopen']:
+            warnings.warn('should only add main task in oncreate or onopen instructions')
+            return None
+        task = pi.getparent()
+        phase = task.getparent()
+        instance = phase.getparent()
+        
+        text = text.format(instanceid=instance.get('id'))
+
+        if task.get('uid') is not None:
+            warnings.warn('associated task already has a linked uid')
+            return None
+        
+        cntag = f"{{cn:{instance.get('name')}}}"
+        cidtag = f"{{cid:{instance.get('id')}}}"
+        steptag = f"{{cstep:{task.get('id')}}}"
+
+        # check if a task already exists?
+        # probably don't need to worry about it, because I check if there's
+        # a link via uid already
+        for tag in [cntag, cidtag, steptag]:
+            if tag not in text:
+                text = text + " " + tag
+        rdict = self._tasklib.add_task(text)
+        newtask = next(iter(rdict.values()))
+        task.set('uid', str(newtask.extensions['uid']))
+        return newtask.extensions['uid']
+            
     def list_inputs(self, checklistaname, instance, task):
         task = self._get_task(checklistname, instance, task)
         if task is None:
@@ -478,8 +513,8 @@ class ChecklistLib(object):
             self.log.error(msg)
             return ERROR, msg
         inputs[number].text = value
-        self._write_checklist(checklistname)
         self.complete_task(tasknode)
+        self._write_checklist(checklistname)
         return GOOD, 'Input recorded'
 
     def get_open_tasks(self, checklistname, checklistid):
@@ -519,9 +554,7 @@ class ChecklistLib(object):
             if len(local_tasks) == 0:
                 continue
             # at this point we've found at least one task, but should only be one
-            self.log.debug('local_tasks %s', local_tasks)
             for local_task in local_tasks:
-                self.log.debug('local_task: %s', str(local_task))
                 for action in local_task.findall('action'):
                     if action.get('dated', False) == 'true':
                         action.set('completed', datetime.date.today().isoformat())

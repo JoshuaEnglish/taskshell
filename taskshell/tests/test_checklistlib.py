@@ -117,6 +117,21 @@ class ChecklistTestCase(unittest.TestCase):
         logging.debug('found tasks: %s', res)
         task = res[0][1]
         self.assertTrue(task.complete, "Task was not marked as complete")
+
+    def test_complete_task_unlocks_next_task(self):
+        """oncomplete unlocks the next task"""
+        self.check_lib.create_instance('onboarding', name="New Employee")
+        instance = self.check_lib._get_instance('onboarding', 'NewEmployee')
+        crm_add = self.check_lib._get_task('onboarding', 'NewEmployee', 'crmadd')
+        crmt = self.check_lib._get_task('onboarding', 'NewEmployee', 'crmt')
+        self.assertEqual(crmt.get('status'), 'onhold')
+        self.complete_crm_add()
+
+        self.assertEqual(crmt.get('status'), 'open')
+        res = self.task_lib.sort_tasks(filters=[f"{{uid:{crmt.get('uid')}}}"])
+        task = res[0][1]
+        self.assertFalse(task.complete, "task was added as complete")
+
         
     def complete_crm_add(self):
         """Several tests require a task to be marked as closed, this 

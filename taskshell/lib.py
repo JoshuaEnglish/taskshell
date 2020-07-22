@@ -2,7 +2,8 @@
 """
 Tasker
 
-Extensible task-based todo-list manager based on Gina Trapani's todo.txt format.
+Extensible task-based todo-list manager based on Gina Trapani's todo.txt
+format.
 Extensions can be installed using entry points.
 """
 
@@ -194,7 +195,7 @@ class TaskLib(object):
 
     Main application.
     On load, looks for all entry_points of 'tasker_library' and creates
-    a local instance of those libraries. Also assigns itself as the 
+    a local instance of those libraries. Also assigns itself as the
     ._tasklib attribute on all new libraries
     """
     def __init__(self, config=None):
@@ -205,10 +206,9 @@ class TaskLib(object):
         self.config = config = config or DEFAULT_CONFIG
         if not self.config['Files']['tasker-dir']:
             self.config['Files']['tasker-dir'] = os.path.join(
-                    os.path.expanduser('~'), 
-                    'tasker')
+                    os.path.expanduser('~'), 'tasker')
             self.log.info(
-                'setting default tasker-dir %s', 
+                'setting default tasker-dir %s',
                 self.config['Files']['tasker-dir'])
         self.extension_hiders = {}
         self.libraries = {}
@@ -218,7 +218,6 @@ class TaskLib(object):
                     self.config['Files']['tasker-dir'])
             self.libraries[entry_point.name]._tasklib = self
             # grab a list of extensions to hide
-
 
         self._textwrapper = None
         self.log.debug('tasker-dir %s', config['Files']['tasker-dir'])
@@ -245,7 +244,7 @@ class TaskLib(object):
         # list of (function name, text)
 
     def set_theme(self, theme_name=None):
-        '''set_theme(name) 
+        '''set_theme(name)
         Applies format-strings from the local configuration file
         format strings are in the form of '<qualifier> <textcolor> ["on"
         <backgroundcolor>'.
@@ -263,7 +262,8 @@ class TaskLib(object):
         config_name = f"Theme: {theme_name}"
         if self.config.has_section(config_name):
             self.log.info('Setting %s color theme', theme_name)
-            self.theme = dict((k.title(), v) for k,v in self.config.items(config_name))
+            self.theme = dict((k.title(), v)
+                              for k, v in self.config.items(config_name))
         else:
             self.log.info('Theme not found: %s', theme_name)
 
@@ -400,8 +400,10 @@ class TaskLib(object):
                 self.log.debug(f'calling library.on_complete_task ({libname})')
                 this = library.on_complete_task(this)
                 if this is None:
-                    self.log.error("Plugin %s.on_complete_task failed to return task object", libname)
-                    raise RuntimeError("Plugin failed to return task in on_complete_task")
+                    self.log.error(
+                        "Plugin %s.on_complete_task failed to return task object", libname)
+                    raise RuntimeError(
+                        "Plugin failed to return task in on_complete_task")
 
         # Issue: Plugins cannot add a task in response.
         # tasks is a local dictionary being written, so new tasks
@@ -508,7 +510,7 @@ class TaskLib(object):
             if ext not in self.extension_hiders:
                 self.extension_hiders[ext] = re.compile(r"\s{%s:[^}]*}" % ext)
 
-    def list_tasks(self, by_pri=True, filters: str=None, filterop=None,
+    def list_tasks(self, by_pri=True, filters: str = None, filterop=None,
                    showcomplete=None, showext=None,
                    opendate=None, closedate=None, hidedate=None):
         """list_tasks([by_pri, filters, filterop, showcomplete, showuid)
@@ -534,13 +536,13 @@ class TaskLib(object):
         self.log.info('Listing %s tasks %s',
                       'all' if showcomplete else 'open',
                       'by priority' if by_pri else 'by number')
-        
+
         self.prep_extension_hiders()
 
         wrap_width = self.config['Tasker'].getint('wrap-width', 78)
         if not self._textwrapper:
             self._textwrapper = textwrap.TextWrapper(width=wrap_width)
-        
+
         res = dict()
 
         if shown_tasks:
