@@ -1,15 +1,16 @@
 from setuptools import setup
+import taskshell
 
 setup(
     name='taskshell',
-    version='0.0dev',
+    version=taskshell.__version__,
     description='Extensible Todo Manager',
     url='https://github.com/JoshuaEnglish/taskshell',
     author='Josh English',
     author_email='josh@joshuarenglish.com',
     license='GNU3',
     packages=["taskshell", ],
-    install_requires=['colorama','lxml']
+    install_requires=['colorama','lxml'],
     zip_safe=False,
     entry_points={
         'console_scripts': ['s=taskshell.cli:main'],

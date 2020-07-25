@@ -5,4 +5,4 @@ from .lib import Task, TaskLib
 from .lib import DEFAULT_CONFIG as config
 from .lib import TASK_OK, TASK_ERROR, TASK_EXTENSION_ERROR
 
-
+__version__ = '1.0.0dev'

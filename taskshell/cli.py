@@ -12,7 +12,7 @@ import colorama
 import minioncmd
 
 from taskshell import (TaskLib, config, 
-    TASK_OK, TASK_ERROR, TASK_EXTENSION_ERROR)
+    TASK_OK, TASK_ERROR, TASK_EXTENSION_ERROR, __version__)
 
 logconfigpath = pathlib.Path(__file__).parent / 'logging.conf'
 
@@ -178,16 +178,21 @@ parser.add_argument('-l', action='store_false', default=True,
 
 theme = parser.add_mutually_exclusive_group()
 theme.add_argument('-t', '--theme', action='store', dest='theme',
-        default='default', help='sets color scheme')
+    default='default', help='sets color scheme')
 theme.add_argument('-n', '--no-color', action='store_const',
-        dest='theme', const='none', help='removes colorization of output')
+    dest='theme', const='none', help='removes colorization of output')
 
 feedback = parser.add_mutually_exclusive_group()
 feedback.add_argument('-d', '--debug', action='store_true',
-        default=False, help='show all debug messages in the console')
+    default=False, help='show all debug messages in the console')
 feedback.add_argument('-v', '--verbose', action='store_true', default=False,
-        help='show more process details (can repeat)')
+    help='show more process details (can repeat)')
 
+folder = parser.add_argument('--directory', action='store_true',
+    default=False, help="List directory and quit")
+
+version = parser.add_argument('--version', action='store_true',
+    default=False, help="List version and quit")
 
 re_color = re.compile("""
 (?P<style>bright|dim|normal|resetall)?\s*
@@ -343,7 +348,17 @@ def main():
         if e_point.name in cli.lib.libraries:
             cli.minions[e_point.name].lib = cli.lib.libraries.get(e_point.name)
 
-    if args.interact:
+    if args.directory:
+        if args.command:
+            print(tasklib.libraries[args.command].directory)
+        else:
+            print(config['Files']['tasker-dir'])
+    if args.version:
+        if args.command:
+            print(tasklib.libraries[args.command].__version__)
+        else:
+            print(__version__)
+    elif args.interact:
         cli.cmdloop()
     elif not args.command:
         cli.onecmd('list')

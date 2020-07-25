@@ -8,8 +8,10 @@ from taskshell import TaskLib
 from configparser import ConfigParser, ExtendedInterpolation
 
 tmp_dir = pathlib.Path(__file__).parent / 'tmp'
-if not tmp_dir.exists():
-    tmp_dir.mkdir()
+tmp_dir.mkdir(exist_ok=True)
+
+bak_dir = tmp_dir / 'backup'
+bak_dir.mkdir(exist_ok=True)
 
 CONFIG = ConfigParser(interpolation=ExtendedInterpolation())
 
@@ -55,8 +57,34 @@ test_checklist = """<checklist>
 checklist_dir = tmp_dir / 'checklists'
 
 # logging.basicConfig(level=logging.DEBUG)
-
 class ChecklistTestCase(unittest.TestCase):
+    def setUp(self):
+        with open(checklist_dir / 'onboarding.xml', 'w') as ch:
+            ch.write(test_checklist)
+        with open(CONFIG['Files']['task-path'], 'w') as fp:
+            fp.write('')
+
+        self.task_lib = TaskLib(CONFIG)
+        self.check_lib = self.task_lib.libraries['checklist']
+
+    def tearDown(self):
+        del self.check_lib
+        del self.task_lib
+
+    def test_list_inputs(self):
+        self.check_lib.create_instance('onboarding', name='Some Guy')
+        inputs = self.check_lib.list_inputs('onboarding', 'SomeGuy', 'crmadd')
+        self.assertIsInstance(inputs, list, 
+            'list_inputs did not return a list')
+        self.assertEqual(len(inputs), 1, 
+            'list_inputs returned list with the wrong length')
+        self.assertIsInstance(inputs[0], tuple, 
+            'list_inputs did not return a tuple')
+        self.assertEqual(len(inputs[0]), 3, 
+            'list_inputs returned tuples of wrong length')
+
+
+class ChecklistIntegrationTestCase(unittest.TestCase):
     def setUp(self):
         with open(checklist_dir / 'onboarding.xml', 'w') as ch:
             ch.write(test_checklist)
