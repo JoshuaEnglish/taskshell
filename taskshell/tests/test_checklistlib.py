@@ -10,8 +10,6 @@ from configparser import ConfigParser, ExtendedInterpolation
 tmp_dir = pathlib.Path(__file__).parent / 'tmp'
 tmp_dir.mkdir(exist_ok=True)
 
-bak_dir = tmp_dir / 'backup'
-bak_dir.mkdir(exist_ok=True)
 
 CONFIG = ConfigParser(interpolation=ExtendedInterpolation())
 
@@ -55,6 +53,9 @@ test_checklist = """<checklist>
 """
 
 checklist_dir = tmp_dir / 'checklists'
+
+bak_dir = checklist_dir / 'backup'
+bak_dir.mkdir(exist_ok=True)
 
 # logging.basicConfig(level=logging.DEBUG)
 class ChecklistTestCase(unittest.TestCase):

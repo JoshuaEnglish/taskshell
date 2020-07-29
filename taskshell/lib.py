@@ -14,6 +14,7 @@ import datetime
 import logging
 import textwrap
 import pkg_resources
+import time
 
 from operator import itemgetter, attrgetter
 from collections import defaultdict, Counter
@@ -243,6 +244,11 @@ class TaskLib(object):
         self.queue = []
         # list of (function name, text)
 
+        for libname, library in self.libraries.items():
+            if hasattr(library, 'on_startup'):
+                self.log.debug(f'calling library.on_startup ({libname})')
+                library.on_startup()
+
     def set_theme(self, theme_name=None):
         '''set_theme(name)
         Applies format-strings from the local configuration file
@@ -401,7 +407,8 @@ class TaskLib(object):
                 this = library.on_complete_task(this)
                 if this is None:
                     self.log.error(
-                        "Plugin %s.on_complete_task failed to return task object", libname)
+                        "Plugin %s.on_complete_task failed to return task object",
+                        libname)
                     raise RuntimeError(
                         "Plugin failed to return task in on_complete_task")
 
@@ -418,6 +425,7 @@ class TaskLib(object):
             return
         for func, args in self.queue:
             getattr(self, func)(**args)
+            time.sleep(0.005)
 
         self.queue = []
 

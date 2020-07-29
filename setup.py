@@ -14,8 +14,14 @@ setup(
     zip_safe=False,
     entry_points={
         'console_scripts': ['s=taskshell.cli:main'],
-        'tasker_commands': ['checklist = taskshell.plugins.checklist:checklistparser'],
-        'tasker_library': ['checklist = taskshell.plugins.checklist:ChecklistLib'],
-        'tasker_minions': ['checklist = taskshell.plugins.checklist:ChecklistCmd']
+        'tasker_commands': 
+            ['checklist = taskshell.plugins.checklist:checklistparser',
+             'quotidia = taskshell.plugins.quotidia:quotidiaparser'   ],
+        'tasker_library': 
+            ['checklist = taskshell.plugins.checklist:ChecklistLib',
+             'quotidia = taskshell.plugins.quotidia:QuotidiaLib'],
+        'tasker_minions': 
+            ['checklist = taskshell.plugins.checklist:ChecklistCmd',
+             'quotidia = taskshell.plugins.quotidia:QuotidiaCmd']
     }
     )

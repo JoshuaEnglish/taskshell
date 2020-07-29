@@ -18,7 +18,6 @@ import logging
 import copy
 import datetime
 import warnings
-from copy import deepcopy
 
 from lxml import etree
 
@@ -273,7 +272,7 @@ class TaskColorizer(etree.XSLTExtension):
     def execute(self, context, self_node, input_node, output_parent):
         # input node is the node being examined (in this case a task)
         # output parent is the xslt parent (in this case, the td)
-        task_node = deepcopy(input_node)
+        task_node = copy.deepcopy(input_node)
         if self.lib._is_task_complete(task_node):
             output_parent.text = self.green
         else:
