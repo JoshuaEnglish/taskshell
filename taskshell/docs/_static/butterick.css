@@ -35,14 +35,16 @@
     src: url('OTF/SourceCodePro-Regular.otf') format('opentype');
 }
 
-body {
-    font-family: "concourse-t3", sans-serif;
-    margin: 0;
-    padding: 0;
-    max-width: 800px;
-    margin-left:auto;
-    margin-right:auto;
-}
+@font-face{
+    font-family: 'Charter';
+    font-weight: 400;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('OTF/Charter Regular.otf') format('opentype')}
+
+
+body { font-family: "Charter", serif; }
+.body { font-family: "Charter", serif; }
 
 code, pre, .pre, .class, .method {
     font-family: "Source Code Pro";

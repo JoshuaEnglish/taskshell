@@ -117,8 +117,7 @@ CLI Commands
 ============
 
 .. argparse::
-   :filename: ../plugins/checklist.py
-   :func: get_argparser
+   :ref: plugins/checklist.checklistparser
    :prog: checklist
 
    this is some text.

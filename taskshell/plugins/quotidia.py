@@ -1,9 +1,9 @@
 """Quotidia Checklist
 
-Plugin for tasker (taskshell, specifically) to manage time-based scheduled 
+Plugin for tasker (taskshell, specifically) to manage time-based scheduled
 tasks.
 
-Ideal for adding tasks that have to be run regurlarly, such as 
+Ideal for adding tasks that have to be run regurlarly, such as
 
     (A) Check Human Resources Report
 
@@ -119,7 +119,7 @@ class Quotidium:
 
        if f"{{qid:{qid}}}" not in self.text:
            self.text += f" {{qid:{qid}}}"
-           
+
     @property
     def as_dict(self):
         return {
@@ -164,7 +164,7 @@ def load_quotidium(dct):
         if 'active' not in dct:
             dct['active'] = True
         return Quotidium(dct['qid'], dct['text'], dct['days'], dct['active'],
-                         [datetime.date.fromisoformat(d) 
+                         [datetime.date.fromisoformat(d)
                              for d in dct['history']])
     return dct
 
@@ -248,7 +248,7 @@ class QuotidiaLib(object):
                     (daysago(today.weekday(), d) for d in q.days))
                 if (should_have_run < days_since_run):
                     tasks_to_add.add((qid, q))
-            
+
             if q.recurrencetype == 'DOM':
                 self.log.debug('trying by day of month')
                 for day in sorted(q.days.split(';')):
@@ -256,7 +256,7 @@ class QuotidiaLib(object):
                     if today.day < dom:
                         continue
                     days_since_dom = today.day - dom
-                    
+
                 if days_since_run > days_since_dom:
                     tasks_to_add.add((qid, q))
 

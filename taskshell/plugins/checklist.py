@@ -4,9 +4,9 @@ Plugin for tasker (taskshell, specfically) to manage repeatable checklists
 using an XML database.
 
 Checklists of a particular type are in a single file, so there will be a file
-for monthlyfinancereview.xml, or newhireprocess.xml, etc. 
+for monthlyfinancereview.xml, or newhireprocess.xml, etc.
 
-Checklists can optionally create tasks in the main task list and 
+Checklists can optionally create tasks in the main task list and
 respond when those tasks are closed from the main list.
 
 
@@ -49,15 +49,15 @@ directory = checklistparser.add_argument('--directory', action="store_true",
 version = checklistparser.add_argument('--version', action="store_true",
     default=False, help='show version of the checklist plugin and quit')
 
-# Minions are assiged a local variable of .lib that corresponds 
+# Minions are assiged a local variable of .lib that corresponds
 # to the libarry of the same name, according to the entry points
 
 class ChecklistCmd(minioncmd.MinionCmd):
     prompt = "checklist>"
     doc_leader = """Checklist Help
-    
+
     Store complex repetitive tasks witohut cluttering the task list"""
-    
+
     def __init__(self, completekey='tab',
                  stdin=None, stdout=None,
                  checklib=None):
@@ -66,7 +66,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
                          stdin=stdin,
                          stdout=stdout)
         self.lib = checklib
-        
+
     def do_html(self, text):
         """create and open an html report"""
         self.lib.html_report()
@@ -120,13 +120,13 @@ class ChecklistCmd(minioncmd.MinionCmd):
             print('Created but probably broken')
         else:
             print('Created checklist for', idx)
-    
+
     def do_opentasks(self, text):
         '''Usage: opentasks CHECKLIST INSTANCE
         List open tasks (collections of actions) for an instance of a checklist.
         Also notes if the task has separate inputs or an information block.
         '''
-        try: 
+        try:
             clist, inst, *junk = text.split(maxsplit=2)
         except ValueError as E:
             self.log.error(E)
@@ -164,7 +164,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
             return False
 
         lister.print_list(
-            [(str(idx), node.text, node.get('completed'), 
+            [(str(idx), node.text, node.get('completed'),
               node.get('dated', 'false'))
              for idx, node in enumerate(task.findall('action'), 1)],
             "# Action Completed Dated".split())
@@ -188,7 +188,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
 
         header = 'Name Value'.split()
         lister.print_list(
-            [(i.get('name'), i.text.strip()) for i in 
+            [(i.get('name'), i.text.strip()) for i in
                 instance.findall('header/input')],
             header)
 
@@ -212,7 +212,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
         """Usage: getinfo CHECKLIST INSTANCE TASKID
         List information about a task.
         """
-        try: 
+        try:
             clist, inst, taskid, *junk = text.split(maxsplit=3)
         except ValueError as E:
             print(E)
@@ -280,7 +280,7 @@ class TaskColorizer(etree.XSLTExtension):
         output_parent.extend(list(self_node))
 
 checklist_xslt = etree.XML('''
-<xsl:stylesheet version="1.0" 
+<xsl:stylesheet version="1.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:my="testns"
     extension-element-prefixes="my">
@@ -300,7 +300,7 @@ checklist_xslt = etree.XML('''
    </tr>
    <tr><th></th>
    <xsl:for-each select="_template/phase/task">
-   <th><xsl:value-of select="@name"/></th>   
+   <th><xsl:value-of select="@name"/></th>
    </xsl:for-each>
    </tr>
    </thead>
@@ -311,7 +311,7 @@ checklist_xslt = etree.XML('''
    <xsl:for-each select="phase/task">
      <td>
        <xsl:attribute name="bgcolor"><my:ext/></xsl:attribute>
-     </td>  
+     </td>
    </xsl:for-each>
    </tr>
    </xsl:for-each>
@@ -323,11 +323,11 @@ checklist_xslt = etree.XML('''
 
 class ChecklistLib(object):
     """Checlist Library
-    This does the massive work of checklists. It is imported by the 
+    This does the massive work of checklists. It is imported by the
     main tasklib"""
 
     __version__ = __version__
-    
+
     def __init__(self, directory):
         """takes the directory, the top level tasker directory, so plugins
         can add files and subfolders as needed"""
@@ -336,7 +336,8 @@ class ChecklistLib(object):
 
         self.directory = pathlib.Path(directory) / 'checklists'
         if not self.directory.exists():
-            self.directory.mkdir()
+            self.log.debug('creating default checklist folder')
+            self.directory.mkdir(exist_ok=True)
         self.checklists = {}
         self.paths = {}
         for path in self.directory.glob('*.xml'):
@@ -349,12 +350,12 @@ class ChecklistLib(object):
                     xml_declaration=True)
 
     def create_report(self):
-        '''return a list of checklists, instances, number of tasks, and 
+        '''return a list of checklists, instances, number of tasks, and
         number of open tasks, and a completion ratio'''
         res = []
         self.log.info('Creating Checklist Report')
         for clist in self.checklists:
-            
+
             for inst in self.list_instances(clist):
                 this = self.checklists[clist].find(f'instance[@id="{inst}"]')
                 groupcnt = 0
@@ -363,7 +364,7 @@ class ChecklistLib(object):
                     groupcnt += 1
                     if not self._is_task_complete(group):
                         opencnt += 1
-                res.append((clist, inst, groupcnt, opencnt, 
+                res.append((clist, inst, groupcnt, opencnt,
                     1.0 - float(opencnt)/groupcnt))
 
         return res
@@ -418,7 +419,7 @@ class ChecklistLib(object):
             return None
         return this
 
-    
+
     def _get_task(self, checklistname, instanceid, taskid):
         """return the node for a task. Return None if no
         task is found"""
@@ -481,7 +482,7 @@ class ChecklistLib(object):
                     res = self.add_task_to_tasklist(pi)
                     if res is None:
                         self.log.error('Did not successfully add task during oncreate instruction')
-        
+
         # ready to add the new node to the checklist
         this.append(candidate)
         self._write_checklist(checklistname)
@@ -500,7 +501,7 @@ class ChecklistLib(object):
             if inode.text is None:
                 completed = False
         return completed
-        
+
     def complete_action(self, checklistname, instance, taskid, number,
                         value=None):
         """complete_action(checklist, instance, taskid, idx [,value])
@@ -578,13 +579,13 @@ class ChecklistLib(object):
         task = pi.getparent()
         phase = task.getparent()
         instance = phase.getparent()
-        
+
         text = text.format(instanceid=instance.get('id'))
 
         if task.get('uid') is not None:
             warnings.warn('associated task already has a linked uid')
             return None
-        
+
         cntag = f"{{cn:{instance.get('name')}}}"
         cidtag = f"{{cid:{instance.get('id')}}}"
         steptag = f"{{cstep:{task.get('id')}}}"
@@ -599,7 +600,7 @@ class ChecklistLib(object):
         newtask = next(iter(rdict.values()))
         task.set('uid', str(newtask.extensions['uid']))
         return newtask.extensions['uid']
-            
+
     def list_inputs(self, checklistname, instance, task):
         task = self._get_task(checklistname, instance, task)
         if task is None:
@@ -633,8 +634,8 @@ class ChecklistLib(object):
 
     def get_open_tasks(self, checklistname, checklistid):
         """get_open_tasks(checklistname, checklistid)
-        Returns a list of (NAME, NODELIST) tuples, where NAME is the 
-        ID of the task, and NODELIST is a list of task nodes 
+        Returns a list of (NAME, NODELIST) tuples, where NAME is the
+        ID of the task, and NODELIST is a list of task nodes
         """
         self.log.info('Listing open tasks for %s', checklistid)
         if checklistname not in self.checklists:
@@ -666,13 +667,13 @@ class ChecklistLib(object):
         with open(report_name, 'wb') as fp:
             fp.write(b'<html><body>')
             for checklist in self.checklists:
-                fp.write(bytes(f'<h1>{checklist}</h1>', 'utf-8')) 
+                fp.write(bytes(f'<h1>{checklist}</h1>', 'utf-8'))
                 fp.write(etree.tostring(transform(self.checklists[checklist])))
             fp.write(b'</body></html>')
         os.startfile(report_name)
 
     def on_complete_task(self, task):
-        """check if the task is linked to a checklist task, and 
+        """check if the task is linked to a checklist task, and
         mark that action as complete if necessary"""
         uid = task.extensions['uid']
         local_tasks = None
