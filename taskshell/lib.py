@@ -15,6 +15,7 @@ import logging
 import textwrap
 import pkg_resources
 import time
+import pathlib
 
 from operator import itemgetter, attrgetter
 from collections import defaultdict, Counter
@@ -211,7 +212,25 @@ class TaskLib(object):
             self.log.info(
                 'setting default tasker-dir %s',
                 self.config['Files']['tasker-dir'])
+
+        if not os.path.exists(config['Files']['tasker-dir']):
+            try:
+                os.mkdir(config['Files']['tasker-dir'])
+            except FileNotFoundError:
+                self.log.error("Default file not found, resetting")
+                config['Files']['tasker-dir'] = os.path.join(
+                                                  os.environ['USERPROFILE'],
+                                                  'tasker')
+                if not os.path.exists(config['Files']['tasker-dir']):
+                    os.mkdir(config['Files']['tasker-dir'])
+
+        for path in ['task-path', 'done-path']:
+            if not os.path.exists(config['Files'][path]):
+                fd = open(config['Files'][path], 'w')
+                fd.close()
+
         self.extension_hiders = {}
+
         self.libraries = {}
         for entry_point in pkg_resources.iter_entry_points('tasker_library'):
             libclass = entry_point.load()
@@ -222,21 +241,6 @@ class TaskLib(object):
 
         self._textwrapper = None
         self.log.debug('tasker-dir %s', config['Files']['tasker-dir'])
-        if not os.path.exists(config['Files']['tasker-dir']):
-            try:
-                os.mkdir(config['Files']['tasker-dir'])
-            except FileNotFoundError:
-                self.log.error("Default file not found, resetting")
-                config['Files']['tasker-dir'] = os.path.join(
-                                                  os.environ['APPDATA'],
-                                                  'tasker')
-                if not os.path.exists(config['Files']['tasker-dir']):
-                    os.mkdir(config['Files']['tasker-dir'])
-
-        for path in ['task-path', 'done-path']:
-            if not os.path.exists(config['Files'][path]):
-                fd = open(config['Files'][path], 'w')
-                fd.close()
 
         self.theme = {}
         # dictionary of PRI: Color Descriptors
