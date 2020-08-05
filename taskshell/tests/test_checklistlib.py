@@ -29,7 +29,7 @@ CONFIG['Tasker'] = {
     }
 
 test_checklist = """<checklist>
-      <_template name="onboarding" version="1.0">
+      <_template name="onboarding" version="1">
         <header>
           <input idsource="true" key="name" label="Employee Name"/>
         </header>
@@ -52,6 +52,33 @@ test_checklist = """<checklist>
     </checklist>
 """
 
+unlock_test = """<checklist>
+      <_template name="unlock" version="1">
+        <header>
+          <input idsource="true" key="widget" label="Widget Code"/>
+          <input key="group" label="Widget Class"/>
+        </header>
+        <phase id="first" label="First Phase">
+          <task id="task1" label="First Task">
+            <?oncreate add_task (B) First {group} task for {instanceid}?>
+            <?oncomplete unlock task2 task3?>
+            <action>task 1 action1</action>
+            <input label="Note" commenttarget="true"/>
+          </task>
+          <task id="task2" label="Second Task" status="onhold">
+            <?onopen add_task (C) Second {group} task for {instanceid}?>
+            <action>task 2 action 1</action>
+            <action>task 2 action 2</action>
+          </task>
+        </phase>
+        <phase id="second" label="Second Phase">
+          <task id="task3" label="Third Task" status="onhold">
+            <action>task 3 action 1</action>
+          </task>
+        </phase>
+      </_template>
+</checklist>"""
+
 checklist_dir = tmp_dir / 'checklists'
 
 bak_dir = checklist_dir / 'backup'
@@ -62,6 +89,9 @@ class ChecklistTestCase(unittest.TestCase):
     def setUp(self):
         with open(checklist_dir / 'onboarding.xml', 'w') as ch:
             ch.write(test_checklist)
+        with open(checklist_dir / 'unlock.xml', 'w') as ch:
+            ch.write(unlock_test)
+
         with open(CONFIG['Files']['task-path'], 'w') as fp:
             fp.write('')
 
@@ -84,11 +114,60 @@ class ChecklistTestCase(unittest.TestCase):
         self.assertEqual(len(inputs[0]), 3, 
             'list_inputs returned tuples of wrong length')
 
+class ChecklistUnlockingTestCase(unittest.TestCase):
+    def setUp(self):
+        with open(checklist_dir / 'onboarding.xml', 'w') as ch:
+            ch.write(test_checklist)
+        with open(checklist_dir / 'unlock.xml', 'w') as ch:
+            ch.write(unlock_test)
+        with open(CONFIG['Files']['task-path'], 'w') as fp:
+            fp.write('')
+
+        self.task_lib = TaskLib(CONFIG)
+        self.check_lib = self.task_lib.libraries['checklist']
+
+    def tearDown(self):
+        del self.check_lib
+        del self.task_lib
+
+        logging.getLogger().setLevel(logging.WARNING)
+
+    def test_create_task_with_data(self):
+        """Test unlocking multiple tasks on task_completion"""
+        self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
+        tasks = self.task_lib.sort_tasks(filters="{cid:task1}")
+        self.assertEqual(len(tasks), 1)
+        generated_task = tasks[0][1]
+        self.assertIn('utensil', generated_task.text)
+        self.assertIn('spoon', generated_task.text)
+
+    def test_unlock_multiple(self):
+        self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
+        print(self.task_lib.sort_tasks())
+        logging.getLogger().setLevel(logging.DEBUG)
+        task2 = self.check_lib._get_task('unlock', 'spoon', 'task2')
+        task3 = self.check_lib._get_task('unlock', 'spoon', 'task3')
+        print(task2.attrib)
+        self.task_lib.complete_task(1, "this is a note")
+        self.assertEqual(task2.get('status'), 'open')
+        self.assertEqual(task3.get('status'), 'open')
+        logging.getLogger().setLevel(logging.WARNING)
+                
+    def test_fill_inupt(self):
+        self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
+        self.task_lib.complete_task(1, "this is a note")
+        task = self.check_lib._get_task('unlock', 'spoon', 'task1')
+        self.assertTrue(self.check_lib._is_task_complete(task))
+        self.assertEqual(task.find('input').text, 'this is a note')
+
+
 
 class ChecklistIntegrationTestCase(unittest.TestCase):
     def setUp(self):
         with open(checklist_dir / 'onboarding.xml', 'w') as ch:
             ch.write(test_checklist)
+        with open(checklist_dir / 'unlock.xml', 'w') as ch:
+            ch.write(unlock_test)
         with open(CONFIG['Files']['task-path'], 'w') as fp:
             fp.write('')
 
@@ -111,6 +190,8 @@ class ChecklistIntegrationTestCase(unittest.TestCase):
         instance = checklist.find('./instance[@id="NewEmployee"]')
         ch_task = instance.find('.//task[@id="crmadd"]')
         self.assertEqual(target_uid, ch_task.attrib.get('uid'))
+        self.assertIn("NewEmployee", generated_task.text)
+        self.assertIn("+NewEmployeeHire", generated_task.text)
         
     def test_complete_task_to_checklist_warning(self):
         '''Test that completing a task in task_lib raises a warning'''
@@ -150,8 +231,6 @@ class ChecklistIntegrationTestCase(unittest.TestCase):
     def test_complete_task_unlocks_next_task(self):
         """oncomplete unlocks the next task"""
         self.check_lib.create_instance('onboarding', name="New Employee")
-        instance = self.check_lib._get_instance('onboarding', 'NewEmployee')
-        crm_add = self.check_lib._get_task('onboarding', 'NewEmployee', 'crmadd')
         crmt = self.check_lib._get_task('onboarding', 'NewEmployee', 'crmt')
         self.assertEqual(crmt.get('status'), 'onhold')
         self.complete_crm_add()

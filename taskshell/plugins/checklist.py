@@ -537,7 +537,8 @@ class ChecklistLib(object):
         return GOOD, 'Marked complete'
 
     def complete_task(self, task):
-        if self._is_task_complete(task):
+        taskdone = self._is_task_complete(task)
+        if taskdone:
             # complete the corresponding main task
             if task.attrib.get('uid'):
                 tasks = self._tasklib.sort_tasks(
@@ -547,15 +548,16 @@ class ChecklistLib(object):
                         'Checklist task complete, marking linked tast as done')
                     self._tasklib.complete_task(tasks[0][0],
                         'marked as done from checklist')
-            # process any oncomplete processing instructions
-            for pi in task.xpath('processing-instruction("oncomplete")'):
-                command, target = pi.text.split(maxsplit=1)
-                if command == 'unlock':
+        # process any oncomplete processing instructions
+        for pi in task.xpath('processing-instruction("oncomplete")'):
+            command, targets = pi.text.split(maxsplit=1)
+            if command == 'unlock':
+                for target in targets.split():
                     self.unlock_task(
                         self._get_task(
                             task.getparent().getparent().get('name'),
                             task.getparent().getparent().get('id'),
-                            target))
+                            target.strip()))
 
     def unlock_task(self, task):
         task.set('status', 'open')
@@ -579,8 +581,11 @@ class ChecklistLib(object):
         task = pi.getparent()
         phase = task.getparent()
         instance = phase.getparent()
+        stuff = {'instanceid': instance.get('id')}
+        for node in instance.findall('header/input'):
+            stuff[node.get('key')] = node.text
 
-        text = text.format(instanceid=instance.get('id'))
+        text = text.format(**stuff)
 
         if task.get('uid') is not None:
             warnings.warn('associated task already has a linked uid')
@@ -675,21 +680,33 @@ class ChecklistLib(object):
     def on_complete_task(self, task):
         """check if the task is linked to a checklist task, and
         mark that action as complete if necessary"""
+        self.log.debug('checklib.on_complete_task with %s', task)
         uid = task.extensions['uid']
         local_tasks = None
 
         for checklist in self.checklists:
-            local_tasks = self.checklists[checklist].findall(f'.//task[@uid="{uid}"]')
+            local_tasks = self.checklists[checklist].findall(
+                f'.//task[@uid="{uid}"]')
             if len(local_tasks) == 0:
                 continue
             # at this point we've found at least one task, but should only be one
             for local_task in local_tasks:
+                logging.debug('oct: %s', local_task.attrib)
                 for action in local_task.findall('action'):
                     if action.get('dated', False) == 'true':
                         action.set('completed', datetime.date.today().isoformat())
                     else:
                         action.set('completed', 'by task')
+                
+                # If the task has a final comment, and an input has a
+                # commenttarget attribute, fill the input text with the comment
+                __, ___, final_comment = task.text.partition("#")
+                the_input = local_task.findall('input[@commenttarget]')
+                for inp in the_input:
+                    if inp.get('commenttarget').lower() == 'true':
+                        inp.text = final_comment.strip()
 
+                # warn the user if there are unfilled inputs
                 inputs_okay = True
                 for inode in local_task.findall('input'):
                     if inode.text is None:
