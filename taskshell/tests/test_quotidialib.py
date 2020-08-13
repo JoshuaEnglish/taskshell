@@ -92,6 +92,7 @@ class QuotidiaTestCase(unittest.TestCase):
 
     def test_add_quotidia(self):
         self.loadlibs()
+        logging.getLogger().setLevel(logging.CRITICAL)
         self.assertRaises(ValueError, self.q_lib.add_quotidia, 
             "monday", "error", "M")
 
@@ -155,3 +156,15 @@ class QuotidiaTestCase(unittest.TestCase):
         self.loadlibs()
         tasks = self.task_lib.sort_tasks(filters=["{qid:alex}"])
         self.assertEqual(len(tasks), 1)
+
+    def test_quotidia_prevent_duplication(self):
+        """quotidia should not add the quotidia if there is an open task
+        attached to that qid"""
+        with fixed_today(datetime.date(2020, 7, 27)):
+            self.loadlibs()
+        self.tearDown()
+        with fixed_today(datetime.date(2020, 8, 3)):
+            self.loadlibs()
+            mondaytasks = self.task_lib.sort_tasks(filters=["{qid:monday}"])
+            self.assertEqual(len(mondaytasks), 1)
+

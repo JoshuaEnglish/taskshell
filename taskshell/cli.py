@@ -318,7 +318,7 @@ class TaskCmd(minioncmd.BossCmd):
 
 def main():
     args = parser.parse_args()
-    print(args)
+    logging.debug(args)
 
     if args.verbose:
         logger.setLevel(logging.INFO)
@@ -353,11 +353,13 @@ def main():
             print(tasklib.libraries[args.command].directory)
         else:
             print(config['Files']['tasker-dir'])
+        return 0
     if args.version:
         if args.command:
             print(tasklib.libraries[args.command].__version__)
         else:
             print(__version__)
+        return 0
     elif args.interact:
         cli.cmdloop()
     elif not args.command:

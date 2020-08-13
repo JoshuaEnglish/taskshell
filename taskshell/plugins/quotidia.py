@@ -279,6 +279,10 @@ class QuotidiaLib(object):
 
     def on_startup(self):
         for (a, b) in self.get_todays_quotidia():
+            # check if an open task on that quotidia exists
+            qtasks = self._tasklib.list_tasks(filters=[f"{{qid:{a}}}"])
+            if qtasks:
+                continue
             self.run_quotidium(a)
             rdict = self._tasklib.add_task(b.task_text)
             self.log.info("Adding Quotidia for %s", a)

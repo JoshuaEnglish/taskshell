@@ -40,7 +40,14 @@ checklist_command = parser.add_subparsers(title='Checklist Commands',
 list_cmd = checklist_command.add_parser(
     'list', help='lists current checklists')
 list_cmd.add_argument('name', nargs='?',
-        help='if given, lists instances of the checklist')
+    help='if given, lists instances of the checklist')
+
+report_cmd = checklist_command.add_parser(
+    'report', help='print a checklist instance report')
+
+html_cmd = checklist_command.add_parser(
+    'html', help="Generate an HTML report")
+
 
 # these arguments should be standard with any plugins
 directory = checklistparser.add_argument('--directory', action="store_true",
@@ -74,10 +81,12 @@ class ChecklistCmd(minioncmd.MinionCmd):
     def do_list(self, text):
         '''list instances of a checklist, or checklists if no name given'''
         if text:
+            found_em = False
             for idx, name in enumerate(
                     self.lib.list_instances(text.strip()), 1):
                 print(idx, name)
-            if not self.lib.list_instances(text.strip()):
+                found_em = True
+            if not found_em:
                 print(f"No instances of {text.strip()}")
         else:
             for key in self.lib.checklists:
@@ -124,7 +133,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
     def do_opentasks(self, text):
         '''Usage: opentasks CHECKLIST INSTANCE
         List open tasks (collections of actions) for an instance of a checklist.
-        Also notes if the task has separate inputs or an information block.
+        Also notes if he task has separate inputs or an information block.
         '''
         try:
             clist, inst, *junk = text.split(maxsplit=2)
@@ -336,7 +345,6 @@ class ChecklistLib(object):
 
         self.directory = pathlib.Path(directory) / 'checklists'
         if not self.directory.exists():
-            self.log.debug('creating default checklist folder')
             self.directory.mkdir(exist_ok=True)
         self.checklists = {}
         self.paths = {}
@@ -375,7 +383,7 @@ class ChecklistLib(object):
         if checklistname not in self.checklists:
             msg = 'No checklist named %s' % checklistname
             self.log.error(msg)
-            return ERROR
+            return []
 
         this = self.checklists[checklistname]
         return [i.get('id') for i in this.findall('instance')]
@@ -680,7 +688,6 @@ class ChecklistLib(object):
     def on_complete_task(self, task):
         """check if the task is linked to a checklist task, and
         mark that action as complete if necessary"""
-        self.log.debug('checklib.on_complete_task with %s', task)
         uid = task.extensions['uid']
         local_tasks = None
 
@@ -691,7 +698,6 @@ class ChecklistLib(object):
                 continue
             # at this point we've found at least one task, but should only be one
             for local_task in local_tasks:
-                logging.debug('oct: %s', local_task.attrib)
                 for action in local_task.findall('action'):
                     if action.get('dated', False) == 'true':
                         action.set('completed', datetime.date.today().isoformat())
@@ -714,6 +720,7 @@ class ChecklistLib(object):
                 if not inputs_okay:
                     warnings.warn(
                         'Completed task has inputs that need to be filled in')
+                self.complete_task(local_task)
             self._write_checklist(checklist)
 
         ### sample code on adding a new task in response to closing a task

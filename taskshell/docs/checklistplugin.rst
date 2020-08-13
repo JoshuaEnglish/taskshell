@@ -6,7 +6,7 @@ This is a standard plugin for Tasker.
 Checklists are stored in xml files. Each xml file stores a particular type
 of checklist, including the basic template and all of its instances.
 
-Checklists organizie tasks in phases, and each task has specific actions
+Checklists organize tasks in phases, and each task has specific actions
 to be taken. The design principle is that a single task may require several
 specific actions. For example, as part of an onboarding process, putting a 
 sales rep on new hire draw requires 2 cases in one system, a task in a second
@@ -36,7 +36,7 @@ The onboarding checklist looks something like this:
     #. Put _ on full payment plan in compensation system
     #. Confirm _ signs sales agreement
 
-In this case, the phases are seperated by three months.
+In the real world usage, the phases are seperated by three months.
 
 These steps are the ones that should appear in the main task list as clear 
 tasks. The actual actions needed to get all of that done may be a much longer
@@ -95,6 +95,9 @@ Things to note:
       instance of the checklist. The ``idsource="true"`` attribute signifies
       that the value of that node is the id used by the system to identify
       the new instance
+
+    * The header is filled out and copied to each instance.
+    
     * The first task has two processing instructions.
 
         * The first triggers a task to be created in the main task list
@@ -117,7 +120,13 @@ CLI Commands
 ============
 
 .. argparse::
-   :ref: plugins/checklist.checklistparser
+   :ref: taskshell.plugins.checklist.checklistparser
    :prog: checklist
+    
+   These commands are available from the shell.   
 
-   this is some text.
+Interactive Prompt Commands
+===========================
+
+.. autoclass:: taskshell.plugins.checklist.ChecklistCmd
+   :members:

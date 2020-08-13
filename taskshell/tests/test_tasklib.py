@@ -17,6 +17,16 @@ TEST_CONFIG['Files'] = {
     'tasker-dir': str(tmp_dir)
     }
 
+TEST_CONFIG['Tasker'] = {
+    'wrap-width': '78',
+    'show-priority-z': 'true',
+    'priority-z-last': 'true',
+    'wrap-behavior': 'wrap',
+    'hidden-extensions': 'uid,hide',
+    'theme-name': 'default',
+    'archive-days': 7
+    }
+    
 
 class TaskLibTestCase(unittest.TestCase):
     def setUp(self):

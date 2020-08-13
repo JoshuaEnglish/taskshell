@@ -143,17 +143,15 @@ class ChecklistUnlockingTestCase(unittest.TestCase):
 
     def test_unlock_multiple(self):
         self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
-        print(self.task_lib.sort_tasks())
-        logging.getLogger().setLevel(logging.DEBUG)
         task2 = self.check_lib._get_task('unlock', 'spoon', 'task2')
         task3 = self.check_lib._get_task('unlock', 'spoon', 'task3')
-        print(task2.attrib)
         self.task_lib.complete_task(1, "this is a note")
-        self.assertEqual(task2.get('status'), 'open')
+        self.assertEqual(task2.get('status'), 'open', 
+            'Completing task did not open next checklist task')
         self.assertEqual(task3.get('status'), 'open')
         logging.getLogger().setLevel(logging.WARNING)
                 
-    def test_fill_inupt(self):
+    def test_fill_input(self):
         self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
         self.task_lib.complete_task(1, "this is a note")
         task = self.check_lib._get_task('unlock', 'spoon', 'task1')
