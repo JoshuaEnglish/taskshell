@@ -25,22 +25,24 @@ import minioncmd
 
 from taskshell import lister, make_uid
 
-#constants for return values
+# constants for return values
 GOOD = 0
 BAD = 1
 ERROR = -1
 
 __version__ = '0.0.1'
 
-checklistparser = parser = argparse.ArgumentParser('checklist',
+checklistparser = parser = argparse.ArgumentParser(
+    'checklist',
     description="Manage checklists in the tasklist")
-checklist_command = parser.add_subparsers(title='Checklist Commands',
-        dest='subcommand', metavar='')
+checklist_command = parser.add_subparsers(
+    title='Checklist Commands',
+    dest='subcommand', metavar='')
 
 list_cmd = checklist_command.add_parser(
     'list', help='lists current checklists')
-list_cmd.add_argument('name', nargs='?',
-    help='if given, lists instances of the checklist')
+list_cmd.add_argument(
+    'name', nargs='?', help='if given, lists instances of the checklist')
 
 report_cmd = checklist_command.add_parser(
     'report', help='print a checklist instance report')
@@ -50,14 +52,17 @@ html_cmd = checklist_command.add_parser(
 
 
 # these arguments should be standard with any plugins
-directory = checklistparser.add_argument('--directory', action="store_true",
+directory = checklistparser.add_argument(
+    '--directory', action="store_true",
     default=False, help='show directory of the checklists and quit')
 
-version = checklistparser.add_argument('--version', action="store_true",
+version = checklistparser.add_argument(
+    '--version', action="store_true",
     default=False, help='show version of the checklist plugin and quit')
 
 # Minions are assiged a local variable of .lib that corresponds
 # to the libarry of the same name, according to the entry points
+
 
 class ChecklistCmd(minioncmd.MinionCmd):
     prompt = "checklist>"
@@ -132,8 +137,9 @@ class ChecklistCmd(minioncmd.MinionCmd):
 
     def do_opentasks(self, text):
         '''Usage: opentasks CHECKLIST INSTANCE
-        List open tasks (collections of actions) for an instance of a checklist.
-        Also notes if he task has separate inputs or an information block.
+        List open tasks (collections of actions) for an instance of
+        a checklist.  Also notes if he task has separate inputs or an
+        information block.
         '''
         try:
             clist, inst, *junk = text.split(maxsplit=2)
@@ -267,10 +273,11 @@ class ChecklistCmd(minioncmd.MinionCmd):
             datetime.date.fromisoformat(stuff[0])
             this_date = stuff[0]
         except (ValueError, TypeError):
-            thisdate = datetime.date.today().isoformat()
-        res, msg = self.lib.complete_action(clist, inst, taskid, int(num),
-            this_date)
+            this_date = datetime.date.today().isoformat()
+        res, msg = self.lib.complete_action(
+            clist, inst, taskid, int(num), this_date)
         print(res, msg)
+
 
 class TaskColorizer(etree.XSLTExtension):
     red = "#ff0000"
@@ -287,6 +294,7 @@ class TaskColorizer(etree.XSLTExtension):
         else:
             output_parent.text = self.red
         output_parent.extend(list(self_node))
+
 
 checklist_xslt = etree.XML('''
 <xsl:stylesheet version="1.0"
@@ -346,6 +354,9 @@ class ChecklistLib(object):
         self.directory = pathlib.Path(directory) / 'checklists'
         if not self.directory.exists():
             self.directory.mkdir(exist_ok=True)
+        backup_dir = self.directory / 'backup'
+        backup_dir.mkdir(exist_ok=True)
+
         self.checklists = {}
         self.paths = {}
         for path in self.directory.glob('*.xml'):
@@ -354,8 +365,8 @@ class ChecklistLib(object):
             self.checklists[path.stem] = root
             self.paths[path.stem] = path.resolve()
             node.write(str(self.directory / "backup" / f"{path.stem}.bak"),
-                    encoding='utf-8',
-                    xml_declaration=True)
+                       encoding='utf-8',
+                       xml_declaration=True)
 
     def create_report(self):
         '''return a list of checklists, instances, number of tasks, and
@@ -373,7 +384,7 @@ class ChecklistLib(object):
                     if not self._is_task_complete(group):
                         opencnt += 1
                 res.append((clist, inst, groupcnt, opencnt,
-                    1.0 - float(opencnt)/groupcnt))
+                            1.0 - float(opencnt)/groupcnt))
 
         return res
 
@@ -398,9 +409,9 @@ class ChecklistLib(object):
         tm = etree.SubElement(ch, '_template', name=name, version="1.0")
         hd = etree.SubElement(tm, 'header')
         etree.SubElement(hd, 'input', idsource='true', key='thing',
-                      name='thing')
+                         name='thing')
         gr = etree.SubElement(tm, 'phase', id='firstphase',
-                           name='First Phase')
+                              name='First Phase')
         sg = etree.SubElement(gr, 'task', id='sb', name='First Subphase')
         act = etree.SubElement(sg, 'action', completed='false', dated='false')
         act.text = 'First Action'
@@ -423,10 +434,9 @@ class ChecklistLib(object):
             f'instance[@id="{instanceid}"]')
         if this is None:
             self.log.error('No %s checklist instance for %s',
-                            checklistname, instanceid)
+                           checklistname, instanceid)
             return None
         return this
-
 
     def _get_task(self, checklistname, instanceid, taskid):
         """return the node for a task. Return None if no
@@ -445,8 +455,8 @@ class ChecklistLib(object):
         """create_instance(checklistname, **kwargs)
         Create a new instace of a checklist
         """
-        self.log.debug('Calling create_instance for %s with %s', checklistname,
-            kwargs)
+        self.log.debug(
+            'Calling create_instance for %s with %s', checklistname, kwargs)
         if checklistname not in self.checklists:
             self.log.error('No checklist named %s', checklistname)
             return BAD, "No checklist named %s" % checklistname
@@ -457,7 +467,7 @@ class ChecklistLib(object):
         emptykeys = [i.get('key') for i in inputs]
         # candidate is the node for the new instance
         candidate = copy.deepcopy(template)
-        candidate.tag='instance'
+        candidate.tag = 'instance'
         newheader = candidate.find('header')
         for key, value in kwargs.items():
             if key in emptykeys:
@@ -484,7 +494,7 @@ class ChecklistLib(object):
             if 'dated' not in action.attrib:
                 action.attrib['dated'] = 'false'
 
-        # create a UID for each task we've just created. This could be 
+        # create a UID for each task we've just created. This could be
         # copied to the main task file, and as all UIDs are time-sensitive,
         # there is no fear of overlap in a single-user invironment
 
@@ -493,11 +503,12 @@ class ChecklistLib(object):
             for pi in task.xpath("processing-instruction('oncreate')"):
                 self.log.debug('pi: %s', pi.text)
                 command, text = pi.text.split(maxsplit=1)
-                added_task = False
                 if command == 'add_task':
                     res = self.add_task_to_tasklist(pi)
                     if res is None:
-                        self.log.error('Did not successfully add task during oncreate instruction')
+                        self.log.error(
+                            'Did not successfully add task during '
+                            'oncreate instruction')
 
         # ready to add the new node to the checklist
         this.append(candidate)
@@ -527,7 +538,7 @@ class ChecklistLib(object):
         """
         value = value or 'true'
         self.log.info('Marking %s:%d complete in %s (%s)',
-                       taskid, number, instance, checklistname)
+                      taskid, number, instance, checklistname)
         task = self._get_task(checklistname, instance, taskid)
         if task is None:
             msg = f"No subgroup {taskid} in {instance} of {checklistname}"
@@ -564,7 +575,8 @@ class ChecklistLib(object):
                 if len(tasks) == 1:
                     self.log.info(
                         'Checklist task complete, marking linked tast as done')
-                    self._tasklib.complete_task(tasks[0][0],
+                    self._tasklib.complete_task(
+                        tasks[0][0],
                         'marked as done from checklist')
         # process any oncomplete processing instructions
         for pi in task.xpath('processing-instruction("oncomplete")'):
@@ -584,7 +596,7 @@ class ChecklistLib(object):
             self.log.debug('pi: %s', pi.text)
             command, text = pi.text.split(maxsplit=1)
             if command == 'add_task':
-                res = self.add_task_to_tasklist(pi)
+                self.add_task_to_tasklist(pi)
 
     def add_task_to_tasklist(self, pi):
         """if the processing instruction is either oncreate or onopen,
@@ -603,7 +615,6 @@ class ChecklistLib(object):
             stuff[node.get('key')] = node.text
 
         text = text.format(**stuff)
-
 
         cntag = f"{{cn:{instance.get('name')}}}"
         cidtag = f"{{cid:{instance.get('id')}}}"
@@ -625,7 +636,7 @@ class ChecklistLib(object):
     def list_inputs(self, checklistname, instance, task):
         task = self._get_task(checklistname, instance, task)
         if task is None:
-            return none
+            return None
         res = []
         for idx, node in enumerate(task.findall('input'), 1):
             res.append((idx, node.get('name'), node.text))
@@ -665,14 +676,15 @@ class ChecklistLib(object):
         this = self.checklists[checklistname].find(
             f'instance[@id="{checklistid}"]')
         if this is None:
-            self.log.error('No %s checklist instance for %s',
-                checklistnaem, checklistid)
+            self.log.error(
+                'No %s checklist instance for %s',
+                checklistname, checklistid)
             return False
         groups = [(g.get('name'), g) for g in this.iterfind('phase')]
         res = []
         for gname, gnode in groups:
             opentasks = [sg for sg in gnode.iterfind('task')
-                        if not self._is_task_complete(sg)]
+                         if not self._is_task_complete(sg)]
             if opentasks:
                 res.append((gname, opentasks))
 
@@ -682,7 +694,7 @@ class ChecklistLib(object):
         """Create and open an HTML report of the current checklists"""
         colorizer = TaskColorizer()
         colorizer.lib = self
-        extensions = { ('testns', 'ext'): colorizer }
+        extensions = {('testns', 'ext'): colorizer}
         transform = etree.XSLT(checklist_xslt, extensions=extensions)
         report_name = self.directory / 'report.html'
         with open(report_name, 'wb') as fp:
@@ -705,14 +717,16 @@ class ChecklistLib(object):
                 f'.//task[@uid="{uid}"]')
             if len(local_tasks) == 0:
                 continue
-            # at this point we've found at least one task, but should only be one
+            # at this point we've found at least one task,
+            # but should only be one
             for local_task in local_tasks:
                 for action in local_task.findall('action'):
                     if action.get('dated', False) == 'true':
-                        action.set('completed', datetime.date.today().isoformat())
+                        action.set('completed',
+                                   datetime.date.today().isoformat())
                     else:
                         action.set('completed', 'by task')
-                
+
                 # If the task has a final comment, and an input has a
                 # commenttarget attribute, fill the input text with the comment
                 __, ___, final_comment = task.text.partition("#")
@@ -732,9 +746,8 @@ class ChecklistLib(object):
                 self.complete_task(local_task)
             self._write_checklist(checklist)
 
-        ### sample code on adding a new task in response to closing a task
+        # sample code on adding a new task in response to closing a task
         # self._tasklib.queue.append((
         #         'add_task',
         #         {'text': '(C) Sample addition from checklist plugin'}))
         return task
-
