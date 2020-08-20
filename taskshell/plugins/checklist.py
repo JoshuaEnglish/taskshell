@@ -23,7 +23,7 @@ from lxml import etree
 
 import minioncmd
 
-from taskshell import lister
+from taskshell import lister, make_uid
 
 #constants for return values
 GOOD = 0
@@ -445,6 +445,8 @@ class ChecklistLib(object):
         """create_instance(checklistname, **kwargs)
         Create a new instace of a checklist
         """
+        self.log.debug('Calling create_instance for %s with %s', checklistname,
+            kwargs)
         if checklistname not in self.checklists:
             self.log.error('No checklist named %s', checklistname)
             return BAD, "No checklist named %s" % checklistname
@@ -482,8 +484,14 @@ class ChecklistLib(object):
             if 'dated' not in action.attrib:
                 action.attrib['dated'] = 'false'
 
+        # create a UID for each task we've just created. This could be 
+        # copied to the main task file, and as all UIDs are time-sensitive,
+        # there is no fear of overlap in a single-user invironment
+
         for task in candidate.findall(".//task"):
+            task.set('uid', make_uid())
             for pi in task.xpath("processing-instruction('oncreate')"):
+                self.log.debug('pi: %s', pi.text)
                 command, text = pi.text.split(maxsplit=1)
                 added_task = False
                 if command == 'add_task':
@@ -494,6 +502,7 @@ class ChecklistLib(object):
         # ready to add the new node to the checklist
         this.append(candidate)
         self._write_checklist(checklistname)
+        self._tasklib.process_queue()
         msg = f"Created {checklistname} instance for {newid}"
         self.log.info(msg)
         return True, msg
@@ -545,6 +554,7 @@ class ChecklistLib(object):
         return GOOD, 'Marked complete'
 
     def complete_task(self, task):
+        logging.debug('checklist.complete_task %s', etree.tostring(task))
         taskdone = self._is_task_complete(task)
         if taskdone:
             # complete the corresponding main task
@@ -568,14 +578,13 @@ class ChecklistLib(object):
                             target.strip()))
 
     def unlock_task(self, task):
+        self.log.debug('unlocking task %s', etree.tostring(task))
         task.set('status', 'open')
         for pi in task.xpath('processing-instruction("onopen")'):
+            self.log.debug('pi: %s', pi.text)
             command, text = pi.text.split(maxsplit=1)
             if command == 'add_task':
                 res = self.add_task_to_tasklist(pi)
-                if res is None:
-                    self.log.error(
-                        'Did not successfully create main task during unlock instruction')
 
     def add_task_to_tasklist(self, pi):
         """if the processing instruction is either oncreate or onopen,
@@ -595,24 +604,23 @@ class ChecklistLib(object):
 
         text = text.format(**stuff)
 
-        if task.get('uid') is not None:
-            warnings.warn('associated task already has a linked uid')
-            return None
 
         cntag = f"{{cn:{instance.get('name')}}}"
         cidtag = f"{{cid:{instance.get('id')}}}"
         steptag = f"{{cstep:{task.get('id')}}}"
+        uidtag = f"{{uid:{task.get('uid')}}}"
+        uid = task.get('uid')
 
         # check if a task already exists?
         # probably don't need to worry about it, because I check if there's
         # a link via uid already
-        for tag in [cntag, cidtag, steptag]:
+        for tag in [cntag, cidtag, steptag, uidtag]:
             if tag not in text:
                 text = text + " " + tag
-        rdict = self._tasklib.add_task(text)
-        newtask = next(iter(rdict.values()))
-        task.set('uid', str(newtask.extensions['uid']))
-        return newtask.extensions['uid']
+        # rdict = self._tasklib.add_task(text)
+        self._tasklib.queue.append(('add_task', {'text': text}))
+        logging.debug('ch_add_task tasklib queue: %s', self._tasklib.queue)
+        return uid
 
     def list_inputs(self, checklistname, instance, task):
         task = self._get_task(checklistname, instance, task)
@@ -688,6 +696,7 @@ class ChecklistLib(object):
     def on_complete_task(self, task):
         """check if the task is linked to a checklist task, and
         mark that action as complete if necessary"""
+        self.log.debug('on_complete_task checking %s', task.extensions['uid'])
         uid = task.extensions['uid']
         local_tasks = None
 

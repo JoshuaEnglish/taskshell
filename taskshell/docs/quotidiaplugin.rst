@@ -4,12 +4,13 @@ The Quotidia Plugin
 This is a standard plugin for Tasker. 
 
 The Quotidia plugin generates tasks automatically according to a set schedule.
-During startup, the plugin searches through the the quotidia it has, and if
-the quotidia is active, adds the appropriate task. If the quotidium has been
-added recently enough, it is not added again, so running Tasker more than 
-once during the day does not cause problems.
+During startup, the plugin searches through the the quotidia it has, and if the
+quotidia is active, adds the appropriate task. If the quotidium has been added
+recently enough and there is still an open task for that quotidium, it is not
+added again, so running Tasker more than once during the day does not cause
+problems.
 
-Quotidia can be scheduled to run by the day of the week or the day of the 
+Quotidia can be scheduled to run by the day of the week or the day of the
 month. Day codes are "MTWRFYS" for Monday through Sunday, and the day of the
 month is a list of days separated by semicolons (i.e. `1` or `5;20`).
 

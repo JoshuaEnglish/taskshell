@@ -45,14 +45,23 @@ DEFAULT_CONFIG.read([
 
 
 def save_config():
-    """Save configuariot to the local file"""
+    """Save configuation to the local file"""
     with open(CONFIGPATH, 'w') as fp:
         DEFAULT_CONFIG.write(fp)
 
 
 TIMEFMT = '%Y-%m-%dT%H:%M:%S'
-IDFMT = '%H%M%S%f%d%m%y'
+# IDFMT = '%H%M%S%f%d%m%y'
+IDFMT = '%y%m%d%H%M%S%f'
 DATEFMT = '%Y-%m-%d'
+
+def make_uid(dt=None):
+    """utility for creating UIDs"""
+    if dt:
+        return dt.strftime(IDFMT)
+    else:
+        time.sleep(0.001)
+        return datetime.datetime.now().strftime(IDFMT)
 
 re_task = re.compile(
     r"(?P<complete>x\s)?"

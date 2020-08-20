@@ -84,7 +84,9 @@ checklist_dir = tmp_dir / 'checklists'
 bak_dir = checklist_dir / 'backup'
 bak_dir.mkdir(exist_ok=True)
 
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    format = "%(levelname)s:%(name)s:%(module)s:%(funcName)s:%(lineno)d:%(message)s")
+
 class ChecklistTestCase(unittest.TestCase):
     def setUp(self):
         with open(checklist_dir / 'onboarding.xml', 'w') as ch:
@@ -134,6 +136,8 @@ class ChecklistUnlockingTestCase(unittest.TestCase):
 
     def test_create_task_with_data(self):
         """Test unlocking multiple tasks on task_completion"""
+       # logging.getLogger().setLevel(logging.DEBUG)
+        # logging.debug('DEBUGGING')
         self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
         tasks = self.task_lib.sort_tasks(filters="{cid:task1}")
         self.assertEqual(len(tasks), 1)
@@ -142,15 +146,25 @@ class ChecklistUnlockingTestCase(unittest.TestCase):
         self.assertIn('spoon', generated_task.text)
 
     def test_unlock_multiple(self):
+        # logging.getLogger().setLevel(logging.DEBUG)
+        # logging.debug('DEBUGGING')
         self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
         task2 = self.check_lib._get_task('unlock', 'spoon', 'task2')
         task3 = self.check_lib._get_task('unlock', 'spoon', 'task3')
+        # logging.debug('tasks: %s', self.task_lib.sort_tasks(showcomplete=True))
         self.task_lib.complete_task(1, "this is a note")
+
         self.assertEqual(task2.get('status'), 'open', 
             'Completing task did not open next checklist task')
         self.assertEqual(task3.get('status'), 'open')
-        logging.getLogger().setLevel(logging.WARNING)
-                
+        # logging.debug('Checking the tasker tasks are created')
+        tasks = self.task_lib.sort_tasks(filters="{cid:task2}")
+        self.assertEqual(len(tasks), 1)
+        tasks = self.task_lib.sort_tasks(showcomplete=True)
+        for idx, task in tasks:
+            logging.debug("%d: %s", idx, task.text)
+        logging.debug("Tasks found: %d", len(tasks))
+               
     def test_fill_input(self):
         self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
         self.task_lib.complete_task(1, "this is a note")
@@ -222,7 +236,6 @@ class ChecklistIntegrationTestCase(unittest.TestCase):
         res = self.task_lib.sort_tasks(
                 filters=[f"{{uid:{ch_task.get('uid')}}}"],
             showcomplete=True)
-        logging.debug('found tasks: %s', res)
         task = res[0][1]
         self.assertTrue(task.complete, "Task was not marked as complete")
 
