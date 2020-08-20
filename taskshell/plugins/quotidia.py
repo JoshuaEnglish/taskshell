@@ -11,7 +11,6 @@ every Tuesday.
 
 """
 
-import os
 import argparse
 import pathlib
 import logging
@@ -19,7 +18,6 @@ import datetime
 import json
 import operator
 import re
-import calendar
 
 import minioncmd
 
@@ -27,33 +25,34 @@ from taskshell import lister
 
 __version__ = '0.0.1'
 
-quotidiaparser = parser = argparse.ArgumentParser('quotidia',
-    description="Manage regularly scheduled tasks")
-quotidia_command = parser.add_subparsers(title="Quotidia Commands",
-    dest='subcommand', metavar='')
+quotidiaparser = parser = argparse.ArgumentParser(
+    'quotidia', description="Manage regularly scheduled tasks")
+quotidia_command = parser.add_subparsers(
+    title="Quotidia Commands", dest='subcommand', metavar='')
 
 
 list_cmd = quotidia_command.add_parser(
     'list', help='lists current quotidia')
-list_cmd.add_argument('columns', nargs=argparse.REMAINDER,
-    help="optional extra colums")
+list_cmd.add_argument(
+    'columns', nargs=argparse.REMAINDER, help="optional extra colums")
 
 # these arguments should be standard with any plugins
-directory = quotidiaparser.add_argument('--directory', action="store_true",
+directory = quotidiaparser.add_argument(
+    '--directory', action="store_true",
     default=False, help='show directory of the quotidia and quit')
 
-version = quotidiaparser.add_argument('--version', action="store_true",
+version = quotidiaparser.add_argument(
+    '--version', action="store_true",
     default=False, help='show version of the quotidia plugin and quit')
 
 
 class QuotidiaCmd(minioncmd.MinionCmd):
-    prompt="quotidia>"
+    prompt = "quotidia>"
     doc_leader = """Quotidia Help
 
     Manage scheduled tasks"""
 
-    def __init__(self, completekey="tab", stdin=None, stdout=None,
-                 qlib = None):
+    def __init__(self, completekey="tab", stdin=None, stdout=None, qlib=None):
         super().__init__('quotidia', completekey=completekey, stdin=stdin,
                          stdout=stdout)
         self.lib = qlib
@@ -65,12 +64,11 @@ class QuotidiaCmd(minioncmd.MinionCmd):
         such as `last_run` or `task_text`
         """
         fields = text.split()
-        res = []
         if 'qid' not in fields:
             fields.insert(0, 'qid')
         getter = operator.attrgetter(*fields)
         lister.print_list([getter(q) for q in self.lib.qids.values()],
-                fields)
+                          fields)
 
     def do_new(self, text):
         """Usage: new NAME
@@ -110,15 +108,16 @@ class Quotidium:
        Create a Quotidium object"""
 
     def __init__(self, qid: str, text: str, days: str,
-                    active: bool = True, history=None):
-       self.qid = qid
-       self.text = text
-       self.days = days
-       self.active = active
-       self.history = history if history else []
+                 active: bool = True, history=None):
 
-       if f"{{qid:{qid}}}" not in self.text:
-           self.text += f" {{qid:{qid}}}"
+        self.qid = qid
+        self.text = text
+        self.days = days
+        self.active = active
+        self.history = history if history else []
+
+        if f"{{qid:{qid}}}" not in self.text:
+            self.text += f" {{qid:{qid}}}"
 
     @property
     def as_dict(self):
@@ -158,6 +157,7 @@ class QuotidiaEncoder(json.JSONEncoder):
             return quotidium.as_dict
         else:
             return super().default(quotidium)
+
 
 def load_quotidium(dct):
     if "__quotidium__" in dct:
@@ -204,7 +204,7 @@ class QuotidiaLib(object):
         q = Quotidium(qid, text, days)
         fname = f"{qid}.quotidia"
         json.dump(q, (self.directory / fname).open(mode='w'),
-            cls=QuotidiaEncoder)
+                  cls=QuotidiaEncoder)
         self.log.info('Created %s', fname)
         self.qids[qid] = q
 
@@ -284,8 +284,5 @@ class QuotidiaLib(object):
             if qtasks:
                 continue
             self.run_quotidium(a)
-            rdict = self._tasklib.add_task(b.task_text)
+            self._tasklib.add_task(b.task_text)
             self.log.info("Adding Quotidia for %s", a)
-
-
-        # rdict = self._tasklib.add_task(text)
