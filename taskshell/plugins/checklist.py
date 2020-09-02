@@ -78,6 +78,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
                          stdin=stdin,
                          stdout=stdout)
         self.lib = checklib
+        self.log = logging.getLogger('checklist')
 
     def do_html(self, text):
         """create and open an html report"""
@@ -125,7 +126,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
         data = {}
         idx = None
         for query in header.findall('input'):
-            answer = input(f"{query.get('name')}: ")
+            answer = input(f"{query.get('label')}: ")
             if query.get('idsource', 'false') == 'true':
                 idx = answer
             data[query.get('key')] = answer
@@ -158,7 +159,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
         for gname, nodes in self.lib.get_open_tasks(clist, inst):
             print(gname)
             print('-'*len(gname))
-            stuff = [(node.get('id'), node.get('name'),
+            stuff = [(node.get('id'), node.get('label'),
                      str(node.find('input') is not None),
                      str(node.find('information') is not None))
                      for node in nodes]
@@ -203,7 +204,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
 
         header = 'Name Value'.split()
         lister.print_list(
-            [(i.get('name'), i.text.strip()) for i in
+            [(i.get('label'), i.text.strip()) for i in
                 instance.findall('header/input')],
             header)
 
@@ -312,12 +313,12 @@ checklist_xslt = etree.XML('''
       <xsl:attribute name="colspan">
         <xsl:value-of select='count(task)'/>
       </xsl:attribute>
-      <xsl:value-of select="@name"/></th>
+      <xsl:value-of select="@label"/></th>
    </xsl:for-each>
    </tr>
    <tr><th></th>
    <xsl:for-each select="_template/phase/task">
-   <th><xsl:value-of select="@name"/></th>
+   <th><xsl:value-of select="@label"/></th>
    </xsl:for-each>
    </tr>
    </thead>
@@ -585,7 +586,7 @@ class ChecklistLib(object):
                 for target in targets.split():
                     self.unlock_task(
                         self._get_task(
-                            task.getparent().getparent().get('name'),
+                            task.getparent().getparent().get('label'),
                             task.getparent().getparent().get('id'),
                             target.strip()))
 
@@ -616,7 +617,7 @@ class ChecklistLib(object):
 
         text = text.format(**stuff)
 
-        cntag = f"{{cn:{instance.get('name')}}}"
+        cntag = f"{{cn:{instance.get('label')}}}"
         cidtag = f"{{cid:{instance.get('id')}}}"
         steptag = f"{{cstep:{task.get('id')}}}"
         uidtag = f"{{uid:{task.get('uid')}}}"
@@ -639,7 +640,7 @@ class ChecklistLib(object):
             return None
         res = []
         for idx, node in enumerate(task.findall('input'), 1):
-            res.append((idx, node.get('name'), node.text))
+            res.append((idx, node.get('label'), node.text))
         return res
 
     def fill_input(self, checklistname, instance, task, number, value):
@@ -680,7 +681,7 @@ class ChecklistLib(object):
                 'No %s checklist instance for %s',
                 checklistname, checklistid)
             return False
-        groups = [(g.get('name'), g) for g in this.iterfind('phase')]
+        groups = [(g.get('label'), g) for g in this.iterfind('phase')]
         res = []
         for gname, gnode in groups:
             opentasks = [sg for sg in gnode.iterfind('task')
