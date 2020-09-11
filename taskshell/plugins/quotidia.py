@@ -66,6 +66,7 @@ class QuotidiaCmd(minioncmd.MinionCmd):
         fields = text.split()
         if 'qid' not in fields:
             fields.insert(0, 'qid')
+        fields.extend([])
         getter = operator.attrgetter(*fields)
         lister.print_list([getter(q) for q in self.lib.qids.values()],
                           fields)

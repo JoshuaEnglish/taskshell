@@ -16,7 +16,7 @@ split_ANSI_escape_sequences = re.compile(r"""
 
 
 def split_ANSI(s):
-    return split_ANSI_escape_sequences(s).groupdict()
+    return split_ANSI_escape_sequences(str(s)).groupdict()
 
 
 def print_list(things, headers):
@@ -24,20 +24,28 @@ def print_list(things, headers):
     lengths = [len(header) for header in headers]
 
     for thing in things:
-        for idx, item in enumerate(thing):
-            lengths[idx] = max(lengths[idx], len(split_ANSI(item)['text']))
+        if isinstance(things[0], tuple):
+            for thing in things:
+                for idx, item in enumerate(thing):
+                    lengths[idx] = max(lengths[idx], len(split_ANSI(item)['text']))
+        else:
+            lengths[0] = max(lengths[0], len(split_ANSI(thing)['text']))
+
     # header_row = ' '.join(headers)
     for idx, header in enumerate(headers):
         print("{0:{1}} ".format(header, lengths[idx]), end='')
     print('')
     print(*['-' * l for l in lengths], sep=" ")
     for thing in things:
-        for idx, item in enumerate(thing):
-            d = split_ANSI(item)
-            col = d.get('col', '')
-            text = d.get('text', 'OOPS!')
+        if isinstance(thing, tuple):
+            for idx, item in enumerate(thing):
+                d = split_ANSI(item)
+                col = d.get('col', '')
+                text = d.get('text', 'OOPS!')
 
-            print("{0}{1:{2}} ".format(col, text, lengths[idx]), end='')
+                print("{0}{1:{2}s} ".format(col, text, lengths[idx]), end='')
+        else:
+            print(thing, end="")
         print('')
 
 
