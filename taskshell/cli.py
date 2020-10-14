@@ -7,12 +7,14 @@ import logging
 import logging.config
 import pathlib
 
+from collections import defaultdict
+
 import colorama
 
 import minioncmd
 
-from taskshell import (TaskLib, config, 
-    TASK_OK, TASK_ERROR, TASK_EXTENSION_ERROR, __version__)
+from taskshell import (
+    TaskLib, config, TASK_OK, TASK_ERROR, TASK_EXTENSION_ERROR, __version__)
 
 logconfigpath = pathlib.Path(__file__).parent / 'logging.conf'
 
@@ -46,7 +48,7 @@ def add_subparser(subparser):
 
 
 def valid_date(string):
-    """Confirm dates in the arguments work as dates, and allows for 
+    """Confirm dates in the arguments work as dates, and allows for
     three strings: today, yesterday, and tomorrow"""
     if string.lower() == 'today':
         return datetime.date.today()
@@ -74,8 +76,8 @@ commands = parser.add_subparsers(
     dest="command",
     metavar='')
 
-list_cmd = commands.add_parser('list', help='list tasks',
-        description='tool for listing tasks')
+list_cmd = commands.add_parser(
+    'list', help='list tasks', description='tool for listing tasks')
 
 list_cmd.add_argument(
     '-n', action="store_false",
@@ -122,88 +124,107 @@ list_cmd.add_argument(
 
 
 add_cmd = commands.add_parser('add', help="add a task")
-add_cmd.add_argument('-d', '--done', action="store_true",
-                        default=False, help="Adds task as completed")
-add_cmd.add_argument(nargs="+", dest="text",
-                        help="text of the new task")
-
+add_cmd.add_argument(
+    '-d', '--done', action="store_true",
+    default=False, help="Adds task as completed")
+add_cmd.add_argument(
+    nargs="+", dest="text", help="text of the new task")
 
 do_cmd = commands.add_parser('do', help='mark a task as complete')
 do_cmd.add_argument('tasknum', type=int, help='number of the task to complete')
-do_cmd.add_argument('comment', nargs=argparse.REMAINDER,
-        help='optional comment to add to the completed task')
+do_cmd.add_argument(
+    'comment', nargs=argparse.REMAINDER,
+    help='optional comment to add to the completed task')
 
 note = commands.add_parser('note', help="Add a note to a task")
 note.add_argument('tasknum', type=int, help='number of the task to note')
-note.add_argument('note', nargs=argparse.REMAINDER,
-        help='note to add to task')
+note.add_argument(
+    'note', nargs=argparse.REMAINDER, help='note to add to task')
 
 pri = commands.add_parser('pri', help="Prioritize a task")
 pri.add_argument('tasknum', type=int, help='number of the task to prioritize')
 pri.add_argument('priority', type=str, help='new priority or _ to clear')
-pri.add_argument('note', nargs=argparse.REMAINDER,
-        help='additional comment')
+pri.add_argument(
+    'note', nargs=argparse.REMAINDER, help='additional comment')
 
 hide_cmd = commands.add_parser('hide', help='hide a task until a given date')
 hide_cmd.add_argument('tasknum', type=int, help='number of the task to hide')
-hide_cmd.add_argument('date', type=valid_date, help='date the task will appear')
+hide_cmd.add_argument('date', type=valid_date,
+                      help='date the task will appear')
+
+archive_cmd = commands.add_parser('archive', help='archive a task')
+archive_cmd.add_argument('tasknum', type=int, nargs=argparse.REMAINDER,
+                         help='number of the task to archive')
 
 for e_point in pkg_resources.iter_entry_points('tasker_commands'):
     new_cmd = e_point.load()
     add_subparser(new_cmd)
 
-parser.add_argument('-i', '--interactive', dest='interact',
+parser.add_argument(
+    '-i', '--interactive', dest='interact',
     action='store_true', default=False,
     help='enter an interactive loop')
 
-parser.add_argument('--power', action='store_true', default=False,
-    help=argparse.SUPPRESS)
+parser.add_argument(
+    '--power', action='store_true', default=False, help=argparse.SUPPRESS)
 
-parser.add_argument('--wrap',
+parser.add_argument(
+    '--wrap',
     choices=['wrap', 'shorten', 'none'],
     default=config['Tasker'].get('wrap-behavior'),
     help='how to handle long lines')
 
-parser.add_argument('--width', type=int, default=78,
+parser.add_argument(
+    '--width', type=int, default=78,
     help="width to wrap or shorten text when printing")
 
-parser.add_argument('-z', action='store_const',
-        default=config['Tasker'].getboolean('show-priority-z'),
-        dest='showz',
-        const=not config['Tasker'].getboolean('show-priority-z'),
-        help='Toggles visibilyt of Z-priority tasks')
-parser.add_argument('-l', action='store_false', default=True,
-        dest='integrate',
-        help='Show Z-priority tasks before unprioritized tasks')
+parser.add_argument(
+    '-z', action='store_const',
+    default=config['Tasker'].getboolean('show-priority-z'),
+    dest='showz',
+    const=not config['Tasker'].getboolean('show-priority-z'),
+    help='Toggles visibilyt of Z-priority tasks')
+
+parser.add_argument(
+    '-l', action='store_false', default=True,
+    dest='integrate',
+    help='Show Z-priority tasks before unprioritized tasks')
 
 theme = parser.add_mutually_exclusive_group()
-theme.add_argument('-t', '--theme', action='store', dest='theme',
+theme.add_argument(
+    '-t', '--theme', action='store', dest='theme',
     default='default', help='sets color scheme')
-theme.add_argument('-n', '--no-color', action='store_const',
+theme.add_argument(
+    '-n', '--no-color', action='store_const',
     dest='theme', const='none', help='removes colorization of output')
 
 feedback = parser.add_mutually_exclusive_group()
-feedback.add_argument('-d', '--debug', action='store_true',
+feedback.add_argument(
+    '-d', '--debug', action='store_true',
     default=False, help='show all debug messages in the console')
-feedback.add_argument('-v', '--verbose', action='store_true', default=False,
+feedback.add_argument(
+    '-v', '--verbose', action='store_true', default=False,
     help='show more process details (can repeat)')
 
-folder = parser.add_argument('--directory', action='store_true',
+folder = parser.add_argument(
+    '--directory', action='store_true',
     default=False, help="List directory and quit")
 
-version = parser.add_argument('--version', action='store_true',
+version = parser.add_argument(
+    '--version', action='store_true',
     default=False, help="List version and quit")
 
-re_color = re.compile("""
+re_color = re.compile(r"""
 (?P<style>bright|dim|normal|resetall)?\s*
 (?P<fore>black|blue|cyan|green|lightblack|magenta|red|reset|white|yellow)?
 (\s+on\s+(?P<back>black|blue|cyan|green|lightblack|magenta|red|reset|white|yellow))?
 """, re.VERBOSE + re.IGNORECASE)
 
+
 def get_color(text):
     """Convert a textLib theme string to a colorama color"""
     stuff = re_color.match(text).groupdict()
-    style = stuff.get('style') or  ''
+    style = stuff.get('style') or ''
     if style.upper() == 'RESETALL':
         style = 'RESET_ALL'
 
@@ -279,14 +300,13 @@ class TaskCmd(minioncmd.BossCmd):
     def do_pri(self, text):
         """Prioritize a task"""
         args = commands.choices['pri'].parse_args(text.split())
-        res, td = self.lib.prioritize_task(args.tasknum,
-                args.priority,
-                " ".join(args.note))
+        res, td = self.lib.prioritize_task(
+            args.tasknum, args.priority, " ".join(args.note))
         if res == TASK_OK:
             self.print_tasks(td)
         elif res == TASK_ERROR:
             print('Error:', td)
-    
+
     def do_hide(self, text):
         """hides a task"""
         args = commands.choices['hide'].parse_args(text.split())
@@ -295,7 +315,31 @@ class TaskCmd(minioncmd.BossCmd):
             self.print_tasks(td)
         elif res == TASK_ERROR:
             print('Error:', td)
-    
+
+    def do_archive(self, text):
+        """archives a task by number"""
+        args = commands.choices['archive'].parse_args(text.split())
+        tasks = self.lib.get_tasks(self.config['Files']['task-path'])
+
+        good = []
+        bad = []
+        reasons = defaultdict(list)
+        for tasknum in args.tasknum:
+            print(tasknum, tasks[tasknum])
+            okay, reason = tasks[tasknum].archiveable()
+            if okay:
+                good.append(tasknum)
+            else:
+                bad.append((tasknum, reason))
+                reasons[reason].append(tasknum)
+        if good:
+            self.lib.archive_tasks(good)
+        print(f"Archived {len(good)} tasks")
+        if bad:
+            print(f"{len(bad)} tasks not archived")
+            for reason in reasons:
+                print(f"{reason}: {len(reasons[reason])}")
+
     def print_tasks(self, taskdict, showext=False):
         if not taskdict:
             print("No tasks found")
@@ -315,6 +359,7 @@ class TaskCmd(minioncmd.BossCmd):
         print('{0}{1}'.format(colorama.Fore.RESET, '_'*(idlen+1)))
         print("{:d} task{:s} shown".format(len(taskdict),
                                            '' if len(taskdict) == 1 else 's'))
+
 
 def main():
     args = parser.parse_args()
@@ -342,7 +387,7 @@ def main():
     for e_point in pkg_resources.iter_entry_points('tasker_minions'):
         minion = e_point.load()
         cli.add_minion(e_point.name, minion())
-        # the main library should have already loaded a library for the 
+        # the main library should have already loaded a library for the
         # plugin, if one exists.
         # the minion should now have a master
         if e_point.name in cli.lib.libraries:

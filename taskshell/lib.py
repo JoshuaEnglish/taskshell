@@ -15,7 +15,6 @@ import logging
 import textwrap
 import pkg_resources
 import time
-import pathlib
 
 from operator import itemgetter, attrgetter
 from collections import defaultdict, Counter
@@ -55,6 +54,7 @@ TIMEFMT = '%Y-%m-%dT%H:%M:%S'
 IDFMT = '%y%m%d%H%M%S%f'
 DATEFMT = '%Y-%m-%d'
 
+
 def make_uid(dt=None):
     """utility for creating UIDs"""
     if dt:
@@ -62,6 +62,7 @@ def make_uid(dt=None):
     else:
         time.sleep(0.001)
         return datetime.datetime.now().strftime(IDFMT)
+
 
 re_task = re.compile(
     r"(?P<complete>x\s)?"
@@ -184,6 +185,19 @@ class Task(object):
                                                DATEFMT)
         today = datetime.datetime.now()
         return today < hide_date
+
+    def archiveable(self, days=None, projects=None):
+        if not self.complete:
+            return False, "Task still open"
+        days = days or 7
+        projects = projects or []
+        now = datetime.datetime.now()
+        delta = now - self.end
+        if delta.days <= days:
+            return False, "Task recently closed"
+        if self.projects and self.projects not in projects:
+            return False, "Task part of a project"
+        return True, "Task archiveable"
 
 
 def include_task(filterop, filters, task):
@@ -420,7 +434,8 @@ class TaskLib(object):
                 this = library.on_complete_task(this)
                 if this is None:
                     self.log.error(
-                        "Plugin %s.on_complete_task failed to return task object",
+                        ("Plugin %s.on_complete_task failed "
+                         "to return task object"),
                         libname)
                     raise RuntimeError(
                         "Plugin failed to return task in on_complete_task")
@@ -769,6 +784,27 @@ class TaskLib(object):
                     res[item]['hidden'] += 1
 
         return res
+
+    def archive_tasks(self, tasks_to_archive):
+        """archive_tasks(list of task IDS)
+        This does the actual archiving. It assumes the calling method
+        has already confirmed tasks are archiveable.
+        """
+        tasks = self.get_tasks(self.config['Files']['task-path'])
+        done = self.get_tasks(self.config['Files']['done-path'])
+
+        next_done = max(done) + 1 if done else 1
+
+        for key in tasks_to_archive:
+            done[next_done] = tasks[key]
+            next_done += 1
+            tasks.pop(key)
+
+        self.write_tasks(tasks, self.config['Files']['task-path'])
+        self.write_tasks(done, self.config['Files']['done-path'])
+
+        msg = f"Archived {len(tasks_to_archive)} tasks"
+        self.log.info(msg)
 
 
 if __name__ == '__main__':

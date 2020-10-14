@@ -29,7 +29,7 @@ CONFIG['Tasker'] = {
     }
 
 test_checklist = """<checklist>
-      <_template name="onboarding" version="1">
+      <_template label="onboarding" version="1">
         <header>
           <input idsource="true" key="name" label="Employee Name"/>
         </header>
@@ -53,7 +53,7 @@ test_checklist = """<checklist>
 """
 
 unlock_test = """<checklist>
-      <_template name="unlock" version="1">
+      <_template label="unlock" version="1">
         <header>
           <input idsource="true" key="widget" label="Widget Code"/>
           <input key="group" label="Widget Class"/>
@@ -107,13 +107,13 @@ class ChecklistTestCase(unittest.TestCase):
     def test_list_inputs(self):
         self.check_lib.create_instance('onboarding', name='Some Guy')
         inputs = self.check_lib.list_inputs('onboarding', 'SomeGuy', 'crmadd')
-        self.assertIsInstance(inputs, list, 
+        self.assertIsInstance(inputs, list,
             'list_inputs did not return a list')
-        self.assertEqual(len(inputs), 1, 
+        self.assertEqual(len(inputs), 1,
             'list_inputs returned list with the wrong length')
-        self.assertIsInstance(inputs[0], tuple, 
+        self.assertIsInstance(inputs[0], tuple,
             'list_inputs did not return a tuple')
-        self.assertEqual(len(inputs[0]), 3, 
+        self.assertEqual(len(inputs[0]), 3,
             'list_inputs returned tuples of wrong length')
 
 class ChecklistUnlockingTestCase(unittest.TestCase):
@@ -154,7 +154,7 @@ class ChecklistUnlockingTestCase(unittest.TestCase):
         # logging.debug('tasks: %s', self.task_lib.sort_tasks(showcomplete=True))
         self.task_lib.complete_task(1, "this is a note")
 
-        self.assertEqual(task2.get('status'), 'open', 
+        self.assertEqual(task2.get('status'), 'open',
             'Completing task did not open next checklist task')
         self.assertEqual(task3.get('status'), 'open')
         # logging.debug('Checking the tasker tasks are created')
@@ -164,7 +164,7 @@ class ChecklistUnlockingTestCase(unittest.TestCase):
         for idx, task in tasks:
             logging.debug("%d: %s", idx, task.text)
         logging.debug("Tasks found: %d", len(tasks))
-               
+
     def test_fill_input(self):
         self.check_lib.create_instance('unlock', widget="spoon", group="utensil")
         self.task_lib.complete_task(1, "this is a note")
@@ -204,7 +204,7 @@ class ChecklistIntegrationTestCase(unittest.TestCase):
         self.assertEqual(target_uid, ch_task.attrib.get('uid'))
         self.assertIn("NewEmployee", generated_task.text)
         self.assertIn("+NewEmployeeHire", generated_task.text)
-        
+
     def test_complete_task_to_checklist_warning(self):
         '''Test that completing a task in task_lib raises a warning'''
         # In this example, there are inputs that are not automatically filled in
@@ -251,9 +251,9 @@ class ChecklistIntegrationTestCase(unittest.TestCase):
         task = res[0][1]
         self.assertFalse(task.complete, "task was added as complete")
 
-        
+
     def complete_crm_add(self):
-        """Several tests require a task to be marked as closed, this 
+        """Several tests require a task to be marked as closed, this
         should do this consistently"""
         self.check_lib.complete_action(
             'onboarding', 'NewEmployee', 'crmadd', 1)
