@@ -155,6 +155,8 @@ hide_cmd.add_argument('date', type=valid_date,
 archive_cmd = commands.add_parser('archive', help='archive a task')
 archive_cmd.add_argument('tasknum', type=int, nargs=argparse.REMAINDER,
                          help='number of the task to archive')
+archive_cmd.add_argument('-p', '--project', help='archive by project',
+                         nargs=argparse.REMAINDER)
 
 for e_point in pkg_resources.iter_entry_points('tasker_commands'):
     new_cmd = e_point.load()
@@ -320,18 +322,28 @@ class TaskCmd(minioncmd.BossCmd):
         """archives a task by number"""
         args = commands.choices['archive'].parse_args(text.split())
         tasks = self.lib.get_tasks(self.config['Files']['task-path'])
+        print(args)
 
         good = []
         bad = []
         reasons = defaultdict(list)
-        for tasknum in args.tasknum:
+        tasks_to_check = args.tasknum
+
+        for project in args.project:
+            victims = [tasknum for tasknum, task in tasks.items()
+                       if project in task.projects]
+            print('Project Tasks:', victims)
+            tasks_to_check.extend(victims)
+
+        for tasknum in tasks_to_check:
             print(tasknum, tasks[tasknum])
-            okay, reason = tasks[tasknum].archiveable()
+            okay, reason = tasks[tasknum].archiveable(projects=args.project)
             if okay:
                 good.append(tasknum)
             else:
                 bad.append((tasknum, reason))
                 reasons[reason].append(tasknum)
+
         if good:
             self.lib.archive_tasks(good)
         print(f"Archived {len(good)} tasks")

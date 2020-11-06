@@ -195,7 +195,8 @@ class Task(object):
         delta = now - self.end
         if delta.days <= days:
             return False, "Task recently closed"
-        if self.projects and self.projects not in projects:
+        if set(self.projects).isdisjoint(set(projects)):
+            print(self.projects, projects)
             return False, "Task part of a project"
         return True, "Task archiveable"
 
