@@ -12,9 +12,10 @@ from collections import defaultdict
 import colorama
 
 import minioncmd
+from lister import print_list
 
 from taskshell import (
-    TaskLib, config, TASK_OK, TASK_ERROR, TASK_EXTENSION_ERROR, __version__)
+    TaskLib, config, TASK_OK, TASK_ERROR, __version__)
 
 logconfigpath = pathlib.Path(__file__).parent / 'logging.conf'
 
@@ -156,7 +157,10 @@ archive_cmd = commands.add_parser('archive', help='archive a task')
 archive_cmd.add_argument('tasknum', type=int, nargs=argparse.REMAINDER,
                          help='number of the task to archive')
 archive_cmd.add_argument('-p', '--project', help='archive by project',
-                         nargs=argparse.REMAINDER)
+                         nargs=argparse.REMAINDER,
+                         default=[])
+
+proj_cmd = commands.add_parser('projects', help='print a project report')
 
 for e_point in pkg_resources.iter_entry_points('tasker_commands'):
     new_cmd = e_point.load()
@@ -351,6 +355,14 @@ class TaskCmd(minioncmd.BossCmd):
             print(f"{len(bad)} tasks not archived")
             for reason in reasons:
                 print(f"{reason}: {len(reasons[reason])}")
+
+    def do_projects(self, text):
+        "print a report of projects"
+        stuff = []
+        for thing, counts in self.lib.get_counts('PROJECT').items():
+            stuff.append((thing, counts['open'], counts['closed']))
+
+        print_list(stuff, ['Project', 'Open', 'Closed'])
 
     def print_tasks(self, taskdict, showext=False):
         if not taskdict:

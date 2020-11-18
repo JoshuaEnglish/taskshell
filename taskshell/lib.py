@@ -195,7 +195,7 @@ class Task(object):
         delta = now - self.end
         if delta.days <= days:
             return False, "Task recently closed"
-        if set(self.projects).isdisjoint(set(projects)):
+        if projects and set(self.projects).isdisjoint(set(projects)):
             print(self.projects, projects)
             return False, "Task part of a project"
         return True, "Task archiveable"
@@ -780,7 +780,8 @@ class TaskLib(object):
 
             for item in items:
                 res[item][key] += 1
-                res[item][task.priority] += 1
+                if task.priority:
+                    res[item][task.priority] += 1
                 if task.is_hidden:
                     res[item]['hidden'] += 1
 
