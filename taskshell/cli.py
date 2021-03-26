@@ -159,6 +159,9 @@ archive_cmd.add_argument('tasknum', type=int, nargs=argparse.REMAINDER,
 archive_cmd.add_argument('-p', '--project', help='archive by project',
                          nargs=argparse.REMAINDER,
                          default=[])
+archive_cmd.add_argument('-c', '--context', help='archive by context',
+                         nargs=argparse.REMAINDER,
+                         default=[])
 
 proj_cmd = commands.add_parser('projects', help='print a project report')
 
@@ -337,6 +340,12 @@ class TaskCmd(minioncmd.BossCmd):
             victims = [tasknum for tasknum, task in tasks.items()
                        if project in task.projects]
             print('Project Tasks:', victims)
+            tasks_to_check.extend(victims)
+
+        for context in args.context:
+            victims = [tasknum for tasknum, task in tasks.items()
+                       if context in task.contexts]
+            print('Context Tasks:', victims)
             tasks_to_check.extend(victims)
 
         for tasknum in tasks_to_check:
