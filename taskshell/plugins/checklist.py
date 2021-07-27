@@ -310,6 +310,21 @@ class ChecklistCmd(minioncmd.MinionCmd):
         )
         print(res, msg)
 
+    def do_ignore(self, text):
+        """Usage: ignore CHECKLIST INSTANCE TASKID
+        Mark a specific task to be ignored by the system.
+        If the task has any 'oncomplete' processing instructions
+        they will not be triggered"""
+        try:
+            clist, inst, taskid, *stuff = text.split(maxsplit=3)
+        except ValueError as E:
+            print(E)
+            return False
+        task = self.lib._get_task(clist, inst, taskid)
+        res, msg = self.lib.ignore_task(task)
+        self.lib._write_checklist(clist)
+        print(res, msg)
+
 
 class TaskColorizer(etree.XSLTExtension):
     red = "#ff0000"
@@ -569,6 +584,8 @@ class ChecklistLib(object):
     def _is_task_complete(self, node: etree.Element) -> bool:
         """Returns true if all the actions in a node are complete and all
         inputs are filled"""
+        if node.get("status") in ["ignored", "bypassed"]:
+            return True
         completed = True
         for action in node.findall("action"):
             if action.get("completed", "false") == "false":
@@ -618,6 +635,11 @@ class ChecklistLib(object):
         self._write_checklist(checklistname)
         return GOOD, "Marked complete"
 
+    def ignore_task(self, task):
+        logging.debug("checklist.ignore_task %s", etree.tostring(task))
+        task.set("status", "ignored")
+        return GOOD, "Task ignored"
+
     def complete_task(self, task):
         logging.debug("checklist.complete_task %s", etree.tostring(task))
         taskdone = self._is_task_complete(task)
@@ -648,6 +670,9 @@ class ChecklistLib(object):
                     )
 
     def unlock_task(self, task):
+        if task.get("status") in ["bypassed", "ignored"]:
+            return None
+
         self.log.debug("unlocking task %s", etree.tostring(task))
         task.set("status", "open")
         for pi in task.xpath('processing-instruction("onopen")'):

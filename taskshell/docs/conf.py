@@ -24,7 +24,7 @@ copyright = '2020, Joshua R English'
 author = 'Joshua R English'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1dev'
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -61,7 +61,7 @@ html_short_title = "Home"
 html_static_path = ['_static']
 
 html_use_smartypants = False
-smartquotis = False
+smartquotes = False
 
 html_sidebarks = {
     '**': ['localtoc.html', 'sourcelink.html', 'searchbox.html']
