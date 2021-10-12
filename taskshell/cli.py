@@ -391,6 +391,7 @@ class TaskCmd(minioncmd.BossCmd):
     def do_pri(self, text):
         """Prioritize a task"""
         args = commands.choices["pri"].parse_args(text.split())
+        print(args)
         res, td = self.lib.prioritize_task(
             args.tasknum, args.priority, " ".join(args.note)
         )
