@@ -39,9 +39,7 @@ checklist_command = parser.add_subparsers(
     title="Checklist Commands", dest="subcommand", metavar=""
 )
 
-list_cmd = checklist_command.add_parser(
-    "list", help="lists current checklists"
-)
+list_cmd = checklist_command.add_parser("list", help="lists current checklists")
 list_cmd.add_argument(
     "name", nargs="?", help="if given, lists instances of the checklist"
 )
@@ -78,9 +76,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
 
     Store complex repetitive tasks witohut cluttering the task list"""
 
-    def __init__(
-        self, completekey="tab", stdin=None, stdout=None, checklib=None
-    ):
+    def __init__(self, completekey="tab", stdin=None, stdout=None, checklib=None):
         super().__init__(
             "checklist", completekey=completekey, stdin=stdin, stdout=stdout
         )
@@ -95,9 +91,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
         """list instances of a checklist, or checklists if no name given"""
         if text:
             found_em = False
-            for idx, name in enumerate(
-                self.lib.list_instances(text.strip()), 1
-            ):
+            for idx, name in enumerate(self.lib.list_instances(text.strip()), 1):
                 print(idx, name)
                 found_em = True
             if not found_em:
@@ -240,7 +234,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
         """
         try:
             clist, inst, sgid, *junk = text.split(maxsplit=3)
-        except ValueError as E:
+        except (ValueError, TypeError) as E:
             self.log.error(E)
             return False
 
@@ -279,9 +273,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
         except ValueError as E:
             print(E)
             return False
-        res, msg = self.lib.fill_input(
-            clist, inst, taskid, int(num), "".join(value)
-        )
+        res, msg = self.lib.fill_input(clist, inst, taskid, int(num), "".join(value))
         if res:
             print(res, msg)
         else:
@@ -305,9 +297,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
             this_date = stuff[0]
         except (ValueError, TypeError):
             this_date = datetime.date.today().isoformat()
-        res, msg = self.lib.complete_action(
-            clist, inst, taskid, int(num), this_date
-        )
+        res, msg = self.lib.complete_action(clist, inst, taskid, int(num), this_date)
         print(res, msg)
 
     def do_ignore(self, text):
@@ -466,9 +456,7 @@ class ChecklistLib(object):
         ch = etree.Element("checklist")
         tm = etree.SubElement(ch, "_template", name=name, version="1.0")
         hd = etree.SubElement(tm, "header")
-        etree.SubElement(
-            hd, "input", idsource="true", key="thing", name="thing"
-        )
+        etree.SubElement(hd, "input", idsource="true", key="thing", name="thing")
         gr = etree.SubElement(tm, "phase", id="firstphase", name="First Phase")
         sg = etree.SubElement(gr, "task", id="sb", name="First Subphase")
         act = etree.SubElement(sg, "action", completed="false", dated="false")
@@ -488,13 +476,9 @@ class ChecklistLib(object):
         if checklistname not in self.checklists:
             self.log.error("No checklist named %s", checklistname)
             return None
-        this = self.checklists[checklistname].find(
-            f'instance[@id="{instanceid}"]'
-        )
+        this = self.checklists[checklistname].find(f'instance[@id="{instanceid}"]')
         if this is None:
-            self.log.error(
-                "No %s checklist instance for %s", checklistname, instanceid
-            )
+            self.log.error("No %s checklist instance for %s", checklistname, instanceid)
             return None
         return this
 
@@ -515,9 +499,7 @@ class ChecklistLib(object):
         """create_instance(checklistname, **kwargs)
         Create a new instace of a checklist
         """
-        self.log.debug(
-            "Calling create_instance for %s with %s", checklistname, kwargs
-        )
+        self.log.debug("Calling create_instance for %s with %s", checklistname, kwargs)
         checklistname = checklistname.replace(" ", "")
         if checklistname not in self.checklists:
             self.log.error("No checklist named %s", checklistname)
@@ -595,9 +577,7 @@ class ChecklistLib(object):
                 completed = False
         return completed
 
-    def complete_action(
-        self, checklistname, instance, taskid, number, value=None
-    ):
+    def complete_action(self, checklistname, instance, taskid, number, value=None):
         """complete_action(checklist, instance, taskid, idx [,value])
         Marks a particular action complete.
         If the action is dated, must pass the date of the action.
@@ -757,9 +737,7 @@ class ChecklistLib(object):
         if checklistname not in self.checklists:
             self.log.error("No checklist name %s", checklistname)
             return None
-        this = self.checklists[checklistname].find(
-            f'instance[@id="{checklistid}"]'
-        )
+        this = self.checklists[checklistname].find(f'instance[@id="{checklistid}"]')
         if this is None:
             self.log.error(
                 "No %s checklist instance for %s", checklistname, checklistid
@@ -769,9 +747,7 @@ class ChecklistLib(object):
         res = []
         for gname, gnode in groups:
             opentasks = [
-                sg
-                for sg in gnode.iterfind("task")
-                if not self._is_task_complete(sg)
+                sg for sg in gnode.iterfind("task") if not self._is_task_complete(sg)
             ]
             if opentasks:
                 res.append((gname, opentasks))
@@ -801,9 +777,7 @@ class ChecklistLib(object):
         local_tasks = None
 
         for checklist in self.checklists:
-            local_tasks = self.checklists[checklist].findall(
-                f'.//task[@uid="{uid}"]'
-            )
+            local_tasks = self.checklists[checklist].findall(f'.//task[@uid="{uid}"]')
             if len(local_tasks) == 0:
                 continue
             # at this point we've found at least one task,
@@ -811,9 +785,7 @@ class ChecklistLib(object):
             for local_task in local_tasks:
                 for action in local_task.findall("action"):
                     if action.get("dated", False) == "true":
-                        action.set(
-                            "completed", datetime.date.today().isoformat()
-                        )
+                        action.set("completed", datetime.date.today().isoformat())
                     else:
                         action.set("completed", "by task")
 
@@ -831,9 +803,7 @@ class ChecklistLib(object):
                     if inode.text is None:
                         inputs_okay = False
                 if not inputs_okay:
-                    warnings.warn(
-                        "Completed task has inputs that need to be filled in"
-                    )
+                    warnings.warn("Completed task has inputs that need to be filled in")
                 self.complete_task(local_task)
             self._write_checklist(checklist)
 
