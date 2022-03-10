@@ -276,8 +276,10 @@ class QuotidiaLib(object):
 
             if q.recurrencetype == "DOM":
                 self.log.debug("trying by day of month")
+                days_since_dom = days_since_run
                 for day in sorted(q.days.split(";")):
                     dom = int(day)
+
                     if today.day < dom:
                         continue
                     days_since_dom = today.day - dom
