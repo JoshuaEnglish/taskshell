@@ -34,6 +34,7 @@ def add_subparser(subparser):
     global commands
 
     if not isinstance(subparser, argparse.ArgumentParser):
+        logger.error("Subparser must be an instance of ArgumentParser")
         raise TypeError("Subparser must be an instance of ArgumentParser")
 
     name = subparser.prog  # assume no prefix commands have been put in
@@ -42,10 +43,9 @@ def add_subparser(subparser):
     commands.choices[name] = subparser
 
     # to include this in help we need include the help string
-    choice_action = commands._ChoicesPseudoAction(
-        name, (), subparser.description
-    )
+    choice_action = commands._ChoicesPseudoAction(name, (), subparser.description)
     commands._choices_actions.append(choice_action)
+    logger.debug("Added subparser %s", name)
 
 
 def valid_date(string):
@@ -72,9 +72,7 @@ parser = argparse.ArgumentParser(
     usage="t [app options] command [command options] [command arguments]",
 )
 
-commands = parser.add_subparsers(
-    title="supported commands", dest="command", metavar=""
-)
+commands = parser.add_subparsers(title="supported commands", dest="command", metavar="")
 
 list_cmd = commands.add_parser(
     "list", help="list tasks", description="tool for listing tasks"
@@ -178,9 +176,7 @@ pri.add_argument("note", nargs=argparse.REMAINDER, help="additional comment")
 
 hide_cmd = commands.add_parser("hide", help="hide a task until a given date")
 hide_cmd.add_argument("tasknum", type=int, help="number of the task to hide")
-hide_cmd.add_argument(
-    "date", type=valid_date, help="date the task will appear"
-)
+hide_cmd.add_argument("date", type=valid_date, help="date the task will appear")
 
 archive_cmd = commands.add_parser("archive", help="archive a task")
 archive_cmd.add_argument(
@@ -304,10 +300,10 @@ version = parser.add_argument(
 
 re_color = re.compile(
     r"""
-(?P<style>bright|dim|normal|resetall)?\s*
-(?P<fore>black|blue|cyan|green|lightblack|magenta|red|reset|white|yellow)?
-(\s+on\s+(?P<back>black|blue|cyan|green|lightblack|magenta|red|reset|white|yellow))?
-""",
+    (?P<style>bright|dim|normal|resetall)?\s*
+    (?P<fore>black|blue|cyan|green|lightblack|magenta|red|reset|white|yellow)?
+    (\s+on\s+(?P<back>black|blue|cyan|green|lightblack|magenta|red|reset|white|yellow))?
+    """,
     re.VERBOSE + re.IGNORECASE,
 )
 
@@ -359,6 +355,7 @@ class TaskCmd(minioncmd.BossCmd):
         args = vars(args)
         showext = args.pop("showext")
         tasks = self.lib.sort_tasks(**args)
+        logger.debug("do_list %d tasks", len(tasks))
         self.print_tasks(dict(tasks), showext)
 
     def do_add(self, text):
@@ -368,7 +365,7 @@ class TaskCmd(minioncmd.BossCmd):
             res = self.lib.add_done(" ".join(args.text))
         else:
             res = self.lib.add_task(" ".join(args.text))
-        self.print_tasks(res)
+            self.print_tasks(res)
 
     def do_do(self, text):
         """Complete a task"""
@@ -422,18 +419,14 @@ class TaskCmd(minioncmd.BossCmd):
 
         for project in args.project:
             victims = [
-                tasknum
-                for tasknum, task in tasks.items()
-                if project in task.projects
+                tasknum for tasknum, task in tasks.items() if project in task.projects
             ]
             print("Project Tasks:", victims)
             tasks_to_check.extend(victims)
 
         for context in args.context:
             victims = [
-                tasknum
-                for tasknum, task in tasks.items()
-                if context in task.contexts
+                tasknum for tasknum, task in tasks.items() if context in task.contexts
             ]
             print("Context Tasks:", victims)
             tasks_to_check.extend(victims)
@@ -449,11 +442,11 @@ class TaskCmd(minioncmd.BossCmd):
 
         if good:
             self.lib.archive_tasks(good)
-        print(f"Archived {len(good)} tasks")
-        if bad:
-            print(f"{len(bad)} tasks not archived")
-            for reason in reasons:
-                print(f"{reason}: {len(reasons[reason])}")
+            print(f"Archived {len(good)} tasks")
+            if bad:
+                print(f"{len(bad)} tasks not archived")
+                for reason in reasons:
+                    print(f"{reason}: {len(reasons[reason])}")
 
     def do_projects(self, text):
         "print a report of projects"
@@ -464,11 +457,14 @@ class TaskCmd(minioncmd.BossCmd):
         print_list(stuff, ["Project", "Open", "Closed"])
 
     def print_tasks(self, taskdict, showext=False):
+        logger.debug("Calling cli.print_tasks")
         if not taskdict:
             print("No tasks found")
             return
         idlen = len(str(max(taskdict)))
+        logger.debug("idlen is %d", idlen)
         self.lib.prep_extension_hiders()
+        logger.debug("taskdict has %d items", len(taskdict))
         for key, task in taskdict.items():
             if not showext:
                 text = self.lib.hide_extensions(task)
@@ -478,6 +474,7 @@ class TaskCmd(minioncmd.BossCmd):
                 color = get_color(self.lib.get_color("Closed"))
             else:
                 color = get_color(self.lib.get_color(task.priority))
+
             print("{3}{1:{0}d} {2}".format(idlen, key, text, color))
         print("{0}{1}".format(colorama.Fore.RESET, "_" * (idlen + 1)))
         print(
@@ -485,6 +482,21 @@ class TaskCmd(minioncmd.BossCmd):
                 len(taskdict), "" if len(taskdict) == 1 else "s"
             )
         )
+
+    def do_uid_check(self, text):
+        "Check for duplicated UIDs"
+        tasks = self.lib.get_tasks(self.config["Files"]["task-path"])
+        uid_map = defaultdict(list)
+        for num in tasks:
+            uid_map[tasks[num].extensions["uid"]].append(num)
+
+        duped_uids = [uid for uid in uid_map if len(uid_map[uid]) > 1]
+        if duped_uids:
+            print("The following UIDs are Duplicates")
+            for uid in duped_uids:
+                print(uid)
+        else:
+            print("No duplicated uids found")
 
 
 def main():

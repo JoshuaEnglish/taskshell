@@ -30,7 +30,7 @@ GOOD = 0
 BAD = 1
 ERROR = -1
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 checklistparser = parser = argparse.ArgumentParser(
     "checklist", description="Manage checklists in the tasklist"
@@ -812,3 +812,27 @@ class ChecklistLib(object):
         #         'add_task',
         #         {'text': '(C) Sample addition from checklist plugin'}))
         return task
+
+    def archive_instance(self, checklistname, instanceid):
+        """Move the instance out of the main checklist into an archive"""
+        this = self._get_instance(checklistname, instanceid)
+        if this is None:
+            return None
+
+        opentasks = self.get_open_tasks(checklistname, instanceid)
+        if opentasks:
+            self.log.error("Instance has open tasks")
+            return None
+
+        archive_dir = self.directory / "archive"
+        archive_dir.mkdir(exist_ok=True)
+        archive_path = archive_dir / f"{checklistname}-archive.xml"
+        if not archive_path.exists():
+            ch = etree.Element("archive", checklist=checklistname)
+            self.log.info("Creating archive file for %s", checklistname)
+            with open(archive_path, "w") as f:
+                f.write(etree.tostring(ch, encoding="utf-8", xml_declaration=True))
+
+        node = etree.parse(str(archive_path))
+        root = node.getroot()
+        root.append(this)
