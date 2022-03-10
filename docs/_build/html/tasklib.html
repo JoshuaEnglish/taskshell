@@ -1,0 +1,236 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Tasker Library &#8212; Tasker 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/better.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="MinionCmd" href="minioncmd.html" />
+    <link rel="prev" title="The Quotidia Plugin" href="quotidiaplugin.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+      <link rel="stylesheet" href="_static/butterick.css" type="text/css" />
+  </head><body>
+    <header id="pageheader"><h1><a href="index.html ">
+        Tasker 1.0.0 documentation
+    </a></h1></header>
+  <div class="related top">
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="quotidiaplugin.html" title="Previous document">The Quotidia Plugin</a>
+        </li>
+        <li>
+          <a href="minioncmd.html" title="Next document">MinionCmd</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+  <nav id="breadcrumbs">
+    <ul>
+      <li><a href="index.html">Home</a></li> 
+    </ul>
+  </nav>
+  </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="the-tasker-library">
+<h1>The Tasker Library<a class="headerlink" href="#the-tasker-library" title="Permalink to this headline">¶</a></h1>
+<p>This is the main standalone library that manages the to-do list.</p>
+<dl class="py class">
+<dt id="Task">
+<em class="property"><span class="pre">class</span> </em><code class="sig-name descname"><span class="pre">Task</span></code><a class="headerlink" href="#Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>While the main storage of the todo list and archive are plain text files,
+the library converts these lines of text to objects that can be manipulated
+programatically.</p>
+<p>The parsed text has several attributes:</p>
+<ul class="simple">
+<li><p>text - the full text as it appears in the file</p></li>
+<li><p>complete - boolean</p></li>
+<li><p>priority - a single letter for priority (empty string for no priority)</p></li>
+<li><p>start - datetime.datetime object for the time the task was entered</p></li>
+<li><p>end - datetime.datetime object for the time the task was completed</p></li>
+<li><p>contexts - a list of contexts attached to the task</p></li>
+<li><p>projects - a list of projects attached to the task</p></li>
+<li><p>extensions - a dictionary of extension key: value pairs</p></li>
+</ul>
+<p>Each task is assigned an <code class="docutils literal notranslate"><span class="pre">uid</span></code> extension automatically. The <code class="docutils literal notranslate"><span class="pre">uid</span></code> value
+is based on the timestamp. The default format is <code class="docutils literal notranslate"><span class="pre">%H%M%S%d%m%y</span></code>. This
+allows for milliseconds to be included in the uid. Some plugins can add
+multiple tasks quickly enough that the milliseconds are necessary.</p>
+<p>Tasks support simple filtering (i.e. <cite>&quot;bookplot&quot; in T</cite>) and simple
+sorting by the string representation of the task.</p>
+<dl class="py method">
+<dt id="Task.from_text">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">from_text</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Task.from_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a text string into a Task object. This is the preferred
+method of creating a task object, done automatically while reading
+files.</p>
+<p>Plugins can define new tasks as strings. See the section on plugins.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="Task.is_hidden">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">is_hidden</span></code><a class="headerlink" href="#Task.is_hidden" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns true if the Task has a {hide:} extension that is in
+the future.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="TaskLib">
+<em class="property"><span class="pre">class</span> </em><code class="sig-name descname"><span class="pre">TaskLib</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TaskLib" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is the main library.</p>
+<p>The main library reads the default configuration and <cite>tasker.ini</cite> file.
+The main library loads plugin libraries on the <code class="docutils literal notranslate"><span class="pre">tasker_library</span></code>
+entry point.</p>
+<dl class="py attribute">
+<dt id="TaskLib.tasks">
+<code class="sig-name descname"><span class="pre">tasks</span></code><a class="headerlink" href="#TaskLib.tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a dictionary of the tasks in the <code class="docutils literal notranslate"><span class="pre">task-path</span></code> file. Tasks
+in the file are simply listed one task per line. The dictionary uses
+the line number as the key and the parsed Task objects as the values</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="TaskLib.add_task">
+<code class="sig-name descname"><span class="pre">add_task</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#Task" title="Task"><span class="pre">Task</span></a><a class="headerlink" href="#TaskLib.add_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a task-formatted string into a task object, writes it to the
+file, and stores it locally.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="TaskLib.complete_task">
+<code class="sig-name descname"><span class="pre">complete_task</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">tasknum:</span> <span class="pre">int</span></em><span class="optional">[</span>, <em class="sig-param"><span class="pre">comment</span></em><span class="optional">]</span><span class="sig-paren">)</span><a class="headerlink" href="#TaskLib.complete_task" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasknum</strong> (<em>int</em>) -- The number of the task</p></li>
+<li><p><strong>comment</strong> (<em>str</em>) -- Optional comment appended to the task text</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(RES_CODE, task dictionary)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple(const, dict)</p>
+</dd>
+</dl>
+<p>Updates a task to be marked complete and saves it to the file
+immediately.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="TaskLib.sort_tasks">
+<code class="sig-name descname"><span class="pre">sort_tasks</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by_pri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filterop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showcomplete</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opendate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closedate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidedate</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TaskLib.sort_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>by_pri</strong> (<em>bool</em>) -- Sort by priority (default) or by line number</p></li>
+<li><p><strong>filters</strong> (<em>list</em>) -- List of strings to filty the list by</p></li>
+<li><p><strong>filterop</strong> -- default is <code class="docutils literal notranslate"><span class="pre">all</span></code> but could by <code class="docutils literal notranslate"><span class="pre">any</span></code></p></li>
+<li><p><strong>showcomplete</strong> (<em>bool</em>) -- If True, shows completed tasks. Default is to not show completed tasks</p></li>
+<li><p><strong>opendate</strong> (<em>date</em>) -- Limits to tasks opened on a given date</p></li>
+<li><p><strong>closedate</strong> (<em>date</em>) -- Limits to tasks closed on a give date</p></li>
+<li><p><strong>hidedate</strong> (<em>date</em>) -- Shows tasks hidden until up to and including this date.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of (idx, Task) tuples</p>
+</dd>
+</dl>
+<p>This method is the main sorting method of tasks. It returns the ordered
+list of tasks as requested.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt>
+<code class="sig-name descname"><span class="pre">list_tasks(by_pri,</span> <span class="pre">filters,</span> <span class="pre">filterop,</span> <span class="pre">showcomplete,</span> <span class="pre">showext,</span></code></dt>
+<dt>
+<code class="sig-name descname"><span class="pre">opendate,</span> <span class="pre">closedate,</span> <span class="pre">hidedate)</span></code></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>showext</strong> (<em>bool</em>) -- Shows extensions that would otherwise be hidden.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="quotidiaplugin.html"
+                        title="previous chapter">The Quotidia Plugin</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="minioncmd.html"
+                        title="next chapter">MinionCmd</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/tasklib.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form class="search" action="search.html" method="get">
+  <input type="text" name="q"
+   placeholder="type to search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="related bottom">
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="quotidiaplugin.html" title="Previous document">The Quotidia Plugin</a>
+        </li>
+        <li>
+          <a href="minioncmd.html" title="Next document">MinionCmd</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+  <nav id="breadcrumbs">
+    <ul>
+      <li><a href="index.html">Home</a></li> 
+    </ul>
+  </nav>
+  </div>
+  <footer id="pagefooter">&copy; 2020, Joshua R English.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a>
+      3.5.2
+        with the <a href="http://github.com/irskep/sphinx-better-theme">
+          better</a> theme.
+
+  </footer>
+
+  
+  </body>
+</html>

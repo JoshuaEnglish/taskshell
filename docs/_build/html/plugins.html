@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plugins &#8212; Tasker 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/better.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Checklist Plugin" href="checklistplugin.html" />
+    <link rel="prev" title="Archiving Tasks" href="archiving_tasks.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+      <link rel="stylesheet" href="_static/butterick.css" type="text/css" />
+  </head><body>
+    <header id="pageheader"><h1><a href="index.html ">
+        Tasker 1.0.0 documentation
+    </a></h1></header>
+  <div class="related top">
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="archiving_tasks.html" title="Previous document">Archiving Tasks</a>
+        </li>
+        <li>
+          <a href="checklistplugin.html" title="Next document">Checklist Plugin</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+  <nav id="breadcrumbs">
+    <ul>
+      <li><a href="index.html">Home</a></li> 
+    </ul>
+  </nav>
+  </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="plugins">
+<h1>Plugins<a class="headerlink" href="#plugins" title="Permalink to this headline">¶</a></h1>
+<p>Plugins are defined at minimum of two of the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A class object to serve as the library</p></li>
+<li><p>An argparse.ArgumentParser instance</p></li>
+<li><p>A minioncmd.MinionCmd subclass</p></li>
+</ul>
+</div></blockquote>
+<p>It may be helpful to define other classes and helper functions. Both the built
+in Checklist plugin and Quotidia plugin define classes and helper functions.</p>
+<p>The main application loads plugins at startup using three entry points:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tasker_library</span></code> defines a plugin library, one that could manage a
+separate source file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tasker_minions</span></code> defines a MinionCmd object to handle CLI interaction</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tasker_commands</span></code> defines an argparse.ArgumentParser.</p></li>
+</ol>
+<div class="section" id="libraries">
+<h2>Libraries<a class="headerlink" href="#libraries" title="Permalink to this headline">¶</a></h2>
+<p>Libraries can be written to add new features and interact with the main Tasker
+application. All libraries are given an <code class="docutils literal notranslate"><span class="pre">._tasklib</span></code> attribute reference to the
+main library.</p>
+<p>All libraries are passed a <code class="docutils literal notranslate"><span class="pre">directory</span></code> attribute on creation.</p>
+<div class="section" id="hook-methods">
+<h3>Hook Methods<a class="headerlink" href="#hook-methods" title="Permalink to this headline">¶</a></h3>
+<p>There are three hook methods plugins can define to interact with the main
+library.</p>
+<dl class="py function">
+<dt id="on_complete_task">
+<code class="sig-name descname"><span class="pre">on_complete_task</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">task:</span> <span class="pre">Task</span> <span class="pre">object</span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Task</span> <span class="pre">object</span><a class="headerlink" href="#on_complete_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is called when the library completes a task. It provides
+the task object and expects a task object in return.</p>
+<p>The main library manages the task list. When a task is completed it scans
+the attached libraries for an <code class="docutils literal notranslate"><span class="pre">on_complete_task</span></code> method and calls it with
+the Task object. Plugin libraries can change the task, or do some other
+action based on the task. To add another task in response, the library
+needs to append items to the <code class="docutils literal notranslate"><span class="pre">.tasklib.queue</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">on_complete_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">):</span>
+    <span class="o">...</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tasklib</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+        <span class="s1">&#39;add_task&#39;</span><span class="p">,</span>
+        <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="s1">&#39;(A) Now go do THIS thing as well&#39;</span><span class="p">}))</span>
+    <span class="k">return</span> <span class="n">task</span>
+</pre></div>
+</div>
+<p>Plugins must return the task object back to the main application. There is
+no guarantee on the order which these hook methods are called.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="on_add_task">
+<code class="sig-name descname"><span class="pre">on_add_task</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">task:</span> <span class="pre">Task</span> <span class="pre">Object</span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Task</span> <span class="pre">object</span><a class="headerlink" href="#on_add_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Similarly, when the application creates a new task, it scans the attached
+libraries for an <code class="docutils literal notranslate"><span class="pre">on_add_task</span></code> method, calling this method with the task
+object and expecting a task in return.</p>
+<p>Plugins can add tasks in response to an added task by appending
+('add_task', &lt;text of task&gt;) to the <code class="docutils literal notranslate"><span class="pre">_tasklib.queue</span></code> object.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="on_startup">
+<code class="sig-name descname"><span class="pre">on_startup</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#on_startup" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is called when the library is created. It has access to the
+tasker library and can add tasks or do any other prepwork as needed.</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="argumnet-parsers">
+<h2>Argumnet Parsers<a class="headerlink" href="#argumnet-parsers" title="Permalink to this headline">¶</a></h2>
+<p>Plugins can define their own argument parser to supplement the shell commands.</p>
+<p>Here is a template from the quotidia plugin:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">quotidiaparser</span> <span class="o">=</span> <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s1">&#39;quotidia&#39;</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Manage regularly scheduled tasks&quot;</span><span class="p">)</span>
+<span class="n">quotidia_command</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_subparsers</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Quotidia Commands&quot;</span><span class="p">,</span>
+    <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;subcommand&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+<span class="c1"># these arguments should be standard with any plugins</span>
+<span class="n">directory</span> <span class="o">=</span> <span class="n">quotidiaparser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--directory&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;show directory of the quotidia and quit&#39;</span><span class="p">)</span>
+
+<span class="n">version</span> <span class="o">=</span> <span class="n">quotidiaparser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--version&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;show version of the quotidia plugin and quit&#39;</span><span class="p">)</span>
+
+<span class="n">list_cmd</span> <span class="o">=</span> <span class="n">quotidia_command</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span>
+    <span class="s1">&#39;list&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;lists current quotidia&#39;</span><span class="p">)</span>
+<span class="n">list_cmd</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;columns&#39;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">REMAINDER</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;optional extra colums&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The ArgumentParser instance is connected through the <code class="docutils literal notranslate"><span class="pre">tasker_commands</span></code>
+entry point.</p>
+</div>
+</div>
+<div class="section" id="minions">
+<h2>Minions<a class="headerlink" href="#minions" title="Permalink to this headline">¶</a></h2>
+<p>Tasker's default interface is the command line. The interactive prompt is run
+by MinionCmd. MinionCmd is a subclass of
+the cmd.Cmd object that allows separate subprograms to be created and while the
+command loop is ative, the user can switch between plugins.</p>
+<p>Plugins should define a subclass of minioncmd.MinionCmd with the following
+class attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">..</span> <span class="k">class</span> <span class="nc">PluginCmd</span><span class="p">(</span><span class="n">minioncmd</span><span class="o">.</span><span class="n">MinionCmd</span><span class="p">)</span>
+
+    <span class="o">..</span> <span class="n">attribute</span><span class="p">::</span> <span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;plugin&gt;&quot;</span>
+
+    <span class="o">..</span> <span class="n">attribute</span><span class="p">::</span> <span class="n">doc_leader</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Plugin Help ...&quot;&quot;&quot;</span>
+
+    <span class="n">Use</span> <span class="n">the</span> <span class="n">following</span> <span class="n">template</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Plugins</a><ul>
+<li><a class="reference internal" href="#libraries">Libraries</a><ul>
+<li><a class="reference internal" href="#hook-methods">Hook Methods</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#argumnet-parsers">Argumnet Parsers</a></li>
+<li><a class="reference internal" href="#minions">Minions</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="archiving_tasks.html"
+                        title="previous chapter">Archiving Tasks</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="checklistplugin.html"
+                        title="next chapter">Checklist Plugin</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/plugins.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form class="search" action="search.html" method="get">
+  <input type="text" name="q"
+   placeholder="type to search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="related bottom">
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="archiving_tasks.html" title="Previous document">Archiving Tasks</a>
+        </li>
+        <li>
+          <a href="checklistplugin.html" title="Next document">Checklist Plugin</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+  <nav id="breadcrumbs">
+    <ul>
+      <li><a href="index.html">Home</a></li> 
+    </ul>
+  </nav>
+  </div>
+  <footer id="pagefooter">&copy; 2020, Joshua R English.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a>
+      3.5.2
+        with the <a href="http://github.com/irskep/sphinx-better-theme">
+          better</a> theme.
+
+  </footer>
+
+  
+  </body>
+</html>

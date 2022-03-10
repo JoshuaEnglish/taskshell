@@ -1,0 +1,410 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checklist Plugin &#8212; Tasker 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/better.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The Quotidia Plugin" href="quotidiaplugin.html" />
+    <link rel="prev" title="Plugins" href="plugins.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+      <link rel="stylesheet" href="_static/butterick.css" type="text/css" />
+  </head><body>
+    <header id="pageheader"><h1><a href="index.html ">
+        Tasker 1.0.0 documentation
+    </a></h1></header>
+  <div class="related top">
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="plugins.html" title="Previous document">Plugins</a>
+        </li>
+        <li>
+          <a href="quotidiaplugin.html" title="Next document">The Quotidia Plugin</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+  <nav id="breadcrumbs">
+    <ul>
+      <li><a href="index.html">Home</a></li> 
+    </ul>
+  </nav>
+  </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="checklist-plugin">
+<h1>Checklist Plugin<a class="headerlink" href="#checklist-plugin" title="Permalink to this headline">¶</a></h1>
+<p>This is a standard plugin for Tasker.</p>
+<p>Checklists are stored in xml files. Each xml file stores a particular type
+of checklist, including the basic template and all of its instances.</p>
+<p>Checklists organize tasks in phases, and each task has specific actions
+to be taken. The design principle is that a single task may require several
+specific actions. For example, as part of an onboarding process, putting a
+sales rep on new hire draw requires 2 cases in one system, a task in a second
+system (after one of the first tasks was completed), and at least seven steps
+in four subsystems of another system, with a fourth system involved.</p>
+<p>This is a single task from a mangement point of view but from an operations
+perspective this is several descrete tasks, each task having specific
+actions. There could be a dozen specific actions to take that will not be
+remembered every time the process is done (hence the need for checklists),
+The main Tasker list should not, as a rule, be cluttered with a dozen tasks
+to cover something that in &quot;one thing&quot; in general but &quot;a dozen thing&quot; in the
+details.</p>
+<p>The onboarding checklist looks something like this:</p>
+<ol class="arabic">
+<li><p>Phase 1 - Initial Hire</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Submit Case to add _ to CRM</p></li>
+<li><p>Submit Case to assign territories to _ in CRM</p></li>
+<li><p>Provision _ in Reporting</p></li>
+<li><p>Add _ to compensation system</p></li>
+<li><p>Put _ on draw in compensation system</p></li>
+</ol>
+</div></blockquote>
+</li>
+<li><p>Phase 2 - Complete onboarding</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Put _ on full payment plan in compensation system</p></li>
+<li><p>Confirm _ signs sales agreement</p></li>
+</ol>
+</div></blockquote>
+</li>
+</ol>
+<p>In the real world usage, the phases are seperated by three months.</p>
+<p>These steps are the ones that should appear in the main task list as clear
+tasks. The actual actions needed to get all of that done may be a much longer
+and more detailed list:</p>
+<ol class="arabic">
+<li><p>Phase 1 - Initial Hire</p>
+<blockquote>
+<div><ol class="arabic">
+<li><p>Submit Case to add _ to CRM</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Case type: New User</p></li>
+<li><p>Case business group:</p></li>
+<li><p>Assigned sales role</p></li>
+<li><p>Assigned manager</p></li>
+<li><p>Case #</p></li>
+</ol>
+</div></blockquote>
+</li>
+</ol>
+</div></blockquote>
+</li>
+</ol>
+<p>Some of these actions aren't really actions, but reminders, so they are
+nuggets of information to remind you (the user) how to do the task, because
+lets face it no one can remember all the little details. Be safe, put it in
+your checklist : )</p>
+<p>Another one of these 'actions' is actually something the user may wish to
+record, because keeping track of case numbers can be important to trace back
+when things go wrong. So <em>Case #</em> relies on user imput.</p>
+<p>The XML for this would look like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>&lt;checklist&gt;
+  &lt;_template name=&quot;onboarding&quot; version=&quot;1.0&quot;&gt;
+    &lt;header&gt;
+      &lt;input idsource=&quot;true&quot; key=&quot;name&quot; label=&quot;Employee Name&quot;/&gt;
+      &lt;input key=&quot;eid&quot; label=&quot;Employee ID&quot;/&gt;
+      &lt;input key=&quot;hiredate&quot; label=&quot;Hire Date&quot;/&gt;
+    &lt;/header&gt;
+    &lt;phase id=&quot;setup&quot; label=&quot;Initial Setup&quot;&gt;
+      &lt;task id=&quot;crmadd&quot; label=&quot;Add to CRM&quot;&gt;
+        &lt;?oncreate add_task (A) Add {name} to CRM +{name}Hire?&gt;
+        &lt;?oncomplete unlock crmt?&gt;
+        &lt;action&gt;Fill out New Employee Template&lt;/action&gt;
+        &lt;action&gt;Submit Case&lt;/action&gt;
+        &lt;input label=&quot;Case #&quot;/&gt;
+      &lt;/task&gt;
+      &lt;task id=&quot;crmt&quot; label=&quot;Add Territories in CRM&quot; status=&quot;onhold&quot;&gt;
+        &lt;?onopen add_task (A) Add {name} Territories in CRM +{name}Hire?&gt;
+        &lt;action&gt;Fill out Territory assignment template&lt;/action&gt;
+        &lt;action&gt;Submit Case&lt;/action&gt;
+        &lt;input label=&quot;Case #&quot;/&gt;
+    &lt;/phase&gt;
+  &lt;/_template&gt;
+&lt;/checklist&gt;
+</pre></div>
+</div>
+<p>This is a sample of the first two tasks.
+Things to note:</p>
+<blockquote>
+<div><ul>
+<li><p>The <em>header</em> section is used to gather basic information about an
+instance of the checklist. The <code class="docutils literal notranslate"><span class="pre">idsource=&quot;true&quot;</span></code> attribute signifies
+that the value of that node is the id used by the system to identify
+the new instance</p></li>
+<li><p>The header is filled out and copied to each instance.</p></li>
+<li><p>The first task has two processing instructions.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>The first triggers a task to be created in the main task list</p></li>
+<li><p>The second triggers a status change in another task in that instance</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>The second task is created with a status of &quot;onhold&quot;, meaning no actions
+will be taken. When the system recognizes the first task is completed,
+the <code class="docutils literal notranslate"><span class="pre">oncomplete</span></code> processing instruction will remove the &quot;onhold&quot; status
+attribute from the second task and follow the <code class="docutils literal notranslate"><span class="pre">onopen</span></code> processing
+instruction</p></li>
+<li><p>These processing instructions describe the behavior of the checklist
+in its relationship with the main task list. The checklist interface
+can still complete a checklist task. If a checklist task is completed
+before being opened by an <code class="docutils literal notranslate"><span class="pre">unlock</span></code> processing instruction, then
+the main task may not be completed or will be created and automatically
+completed.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="cli-commands">
+<h1>CLI Commands<a class="headerlink" href="#cli-commands" title="Permalink to this headline">¶</a></h1>
+<p>These commands are available from the shell.</p>
+<p><p>Manage checklists in the tasklist</p>
+</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">checklist</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">directory</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">version</span><span class="p">]</span>  <span class="o">...</span>
+</pre></div>
+</div>
+<div class="section" id="Named Arguments">
+<h2>Named Arguments<a class="headerlink" href="#Named Arguments" title="Permalink to this headline">¶</a></h2>
+<dl class="option-list">
+<dt><kbd>--directory</kbd></dt>
+<dd><p>show directory of the checklists and quit</p>
+<p>Default: False</p>
+</dd>
+<dt><kbd>--version</kbd></dt>
+<dd><p>show version of the checklist plugin and quit</p>
+<p>Default: False</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="Checklist Commands">
+<h2>Checklist Commands<a class="headerlink" href="#Checklist Commands" title="Permalink to this headline">¶</a></h2>
+<dl class="option-list">
+<dt><kbd></kbd></dt>
+<dd><p>Possible choices: list, report, html</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="Sub-commands:">
+<h2>Sub-commands:<a class="headerlink" href="#Sub-commands:" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="list">
+<h3>list<a class="headerlink" href="#list" title="Permalink to this headline">¶</a></h3>
+<p>lists current checklists</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">checklist</span> <span class="nb">list</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="section" id="Positional Arguments">
+<h4>Positional Arguments<a class="headerlink" href="#Positional Arguments" title="Permalink to this headline">¶</a></h4>
+<dl class="option-list">
+<dt><kbd>name</kbd></dt>
+<dd><p>if given, lists instances of the checklist</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="report">
+<h3>report<a class="headerlink" href="#report" title="Permalink to this headline">¶</a></h3>
+<p>print a checklist instance report</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">checklist</span> <span class="n">report</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="html">
+<h3>html<a class="headerlink" href="#html" title="Permalink to this headline">¶</a></h3>
+<p>Generate an HTML report</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">checklist</span> <span class="n">html</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="interactive-prompt-commands">
+<h1>Interactive Prompt Commands<a class="headerlink" href="#interactive-prompt-commands" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="taskshell.plugins.checklist.ChecklistCmd">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">taskshell.plugins.checklist.</span></code><code class="sig-name descname"><span class="pre">ChecklistCmd</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">completekey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tab'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checklib</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_actions">
+<code class="sig-name descname"><span class="pre">do_actions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Usage: actions CHECKLIST INSTANCE TASKID
+List actions under a particular task</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_create">
+<code class="sig-name descname"><span class="pre">do_create</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_create" title="Permalink to this definition">¶</a></dt>
+<dd><p>create a new checklist</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_do">
+<code class="sig-name descname"><span class="pre">do_do</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_do" title="Permalink to this definition">¶</a></dt>
+<dd><p>Usage: do CHECKLIST INSTANCE TASKID NUMBER [DATE]
+Mark a specific action as complete. Will default to today's date
+if date is required but no date given.
+Date should be in ISO format: YYYY-MM-DD</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_fill">
+<code class="sig-name descname"><span class="pre">do_fill</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_fill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Usage: fill CHECKLIST INSTANCE SUBGROUP NUMBER VALUE</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_getheader">
+<code class="sig-name descname"><span class="pre">do_getheader</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_getheader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Usage: getheader CHECKLIST INSTANCE
+Lists the header information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_getinfo">
+<code class="sig-name descname"><span class="pre">do_getinfo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_getinfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Usage: getinfo CHECKLIST INSTANCE TASKID
+List information about a task.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_html">
+<code class="sig-name descname"><span class="pre">do_html</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_html" title="Permalink to this definition">¶</a></dt>
+<dd><p>create and open an html report</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_inputs">
+<code class="sig-name descname"><span class="pre">do_inputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Usage: inputs CHECKLIST INSTANCE TASKID
+Lists inputs related to a task.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_list">
+<code class="sig-name descname"><span class="pre">do_list</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>list instances of a checklist, or checklists if no name given</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_new">
+<code class="sig-name descname"><span class="pre">do_new</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_new" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new instance of a checklist</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_opentasks">
+<code class="sig-name descname"><span class="pre">do_opentasks</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_opentasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Usage: opentasks CHECKLIST INSTANCE
+List open tasks (collections of actions) for an instance of
+a checklist.  Also notes if he task has separate inputs or an
+information block.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="taskshell.plugins.checklist.ChecklistCmd.do_report">
+<code class="sig-name descname"><span class="pre">do_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#taskshell.plugins.checklist.ChecklistCmd.do_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>print a report of checklists and instances</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Checklist Plugin</a></li>
+<li><a class="reference internal" href="#cli-commands">CLI Commands</a><ul>
+<li><a class="reference internal" href="#Named Arguments">Named Arguments</a></li>
+<li><a class="reference internal" href="#Checklist Commands">Checklist Commands</a></li>
+<li><a class="reference internal" href="#Sub-commands:">Sub-commands:</a><ul>
+<li><a class="reference internal" href="#list">list</a><ul>
+<li><a class="reference internal" href="#Positional Arguments">Positional Arguments</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#report">report</a></li>
+<li><a class="reference internal" href="#html">html</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#interactive-prompt-commands">Interactive Prompt Commands</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="plugins.html"
+                        title="previous chapter">Plugins</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="quotidiaplugin.html"
+                        title="next chapter">The Quotidia Plugin</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/checklistplugin.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form class="search" action="search.html" method="get">
+  <input type="text" name="q"
+   placeholder="type to search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="related bottom">
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="plugins.html" title="Previous document">Plugins</a>
+        </li>
+        <li>
+          <a href="quotidiaplugin.html" title="Next document">The Quotidia Plugin</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+  <nav id="breadcrumbs">
+    <ul>
+      <li><a href="index.html">Home</a></li> 
+    </ul>
+  </nav>
+  </div>
+  <footer id="pagefooter">&copy; 2020, Joshua R English.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a>
+      3.5.2
+        with the <a href="http://github.com/irskep/sphinx-better-theme">
+          better</a> theme.
+
+  </footer>
+
+  
+  </body>
+</html>
