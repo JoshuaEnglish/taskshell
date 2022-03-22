@@ -351,7 +351,10 @@ class TaskCmd(minioncmd.BossCmd):
         Can use ~word to filter out tasks containing that word
         """
         args = commands.choices["list"].parse_args(text.split())
+        print(args)
         args.filterop = any if args.filterop else all
+        if args.hidedate == datetime.date.max:
+            self.lib.show_extension("hide")
         args = vars(args)
         showext = args.pop("showext")
         tasks = self.lib.sort_tasks(**args)
@@ -501,7 +504,8 @@ class TaskCmd(minioncmd.BossCmd):
 
 def main():
     args = parser.parse_args()
-    logging.debug(args)
+    logger.debug(args)
+    print(args)
 
     if args.verbose:
         logger.setLevel(logging.INFO)
@@ -518,6 +522,8 @@ def main():
 
     tasklib = TaskLib(config)
     tasklib.set_theme(args.theme)
+    # if args.showhidden:
+    #    tasklib.show_extension("hide")
 
     colorama.init(strip=True, autoreset=True)
 
@@ -559,7 +565,8 @@ def main():
     elif not args.command:
         cli.onecmd("list")
     else:
-        cli.onecmd(" ".join(sys.argv[sys.argv.index(args.command) :]))
+        cidx = sys.argv.index(args.command)
+        cli.onecmd(" ".join(sys.argv[cidx:]))
 
     return 0
 

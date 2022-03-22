@@ -159,16 +159,12 @@ class Task(object):
             priority = ""
 
         if match.group("start"):
-            start = datetime.datetime.strptime(
-                match.group("start").strip(), TIMEFMT
-            )
+            start = datetime.datetime.strptime(match.group("start").strip(), TIMEFMT)
         else:
             start = datetime.datetime.now()
 
         if match.group("end"):
-            end = datetime.datetime.strptime(
-                match.group("end").strip(), TIMEFMT
-            )
+            end = datetime.datetime.strptime(match.group("end").strip(), TIMEFMT)
         else:
             end = None
 
@@ -190,18 +186,14 @@ class Task(object):
             edict["uid"] = start.strftime(IDFMT)
             task += " {uid:%s}" % edict["uid"]
 
-        return cls(
-            complete, priority, start, end, task, context, projects, edict
-        )
+        return cls(complete, priority, start, end, task, context, projects, edict)
 
     @property
     def is_hidden(self):
         "Returns true if the hidden flag exists and shows a future date"
         if "hide" not in self.extensions:
             return False
-        hide_date = datetime.datetime.strptime(
-            self.extensions["hide"], DATEFMT
-        )
+        hide_date = datetime.datetime.strptime(self.extensions["hide"], DATEFMT)
         today = datetime.datetime.now()
         return today < hide_date
 
@@ -319,9 +311,7 @@ class TaskLib(object):
         config_name = f"Theme: {theme_name}"
         if self.config.has_section(config_name):
             self.log.info("Setting %s color theme", theme_name)
-            self.theme = dict(
-                (k.title(), v) for k, v in self.config.items(config_name)
-            )
+            self.theme = dict((k.title(), v) for k, v in self.config.items(config_name))
         else:
             self.log.info("Theme not found: %s", theme_name)
 
@@ -364,13 +354,13 @@ class TaskLib(object):
             self.log.error("Cannot add hidden extension: No configuration")
             return None
 
-        extensions = self.config["Tasker"]["hidden_extensions"].split(",")
+        extensions = self.config["Tasker"]["hidden-extensions"].split(",")
         extensions = [e.strip() for e in extensions]
         ext = ext.strip()
         if ext in extensions:
             extensions.remove(ext)
 
-        self.config["Tasker"]["hidden_extensions"] = ",".join(extensions)
+        self.config["Tasker"]["hidden-extensions"] = ",".join(extensions)
 
     def get_tasks(self, path):
         """Get tasks from either todo.txt or done.txt
@@ -404,9 +394,7 @@ class TaskLib(object):
         """Adds a task to the current file.
         Returns {idx: taskobj"""
         if not hasattr(self, "tasks") or self.tasks is None:
-            tasks = self.tasks = self.get_tasks(
-                self.config["Files"]["task-path"]
-            )
+            tasks = self.tasks = self.get_tasks(self.config["Files"]["task-path"])
         else:
             tasks = self.tasks
         this = Task.from_text(text)
@@ -437,9 +425,7 @@ class TaskLib(object):
         """
         # Check if self.tasks has been established
         if not hasattr(self, "tasks") or self.tasks is None:
-            tasks = self.tasks = self.get_tasks(
-                self.config["Files"]["task-path"]
-            )
+            tasks = self.tasks = self.get_tasks(self.config["Files"]["task-path"])
         else:
             tasks = self.tasks
 
@@ -465,10 +451,7 @@ class TaskLib(object):
                 this = library.on_complete_task(this)
                 if this is None:
                     self.log.error(
-                        (
-                            "Plugin %s.on_complete_task failed "
-                            "to return task object"
-                        ),
+                        ("Plugin %s.on_complete_task failed " "to return task object"),
                         libname,
                     )
                     raise RuntimeError(
@@ -538,16 +521,12 @@ class TaskLib(object):
 
         if not self.config["Tasker"].getboolean("show-priority-z", True):
             self.log.info("Hiding priority Z tasks")
-            everything = [
-                (key, val) for key, val in everything if val.priority != "Z"
-            ]
+            everything = [(key, val) for key, val in everything if val.priority != "Z"]
 
         if opendate:
             self.log.info("Showing items opened on %s", opendate)
             everything = [
-                (key, val)
-                for key, val in everything
-                if val.start.date() == opendate
+                (key, val) for key, val in everything if val.start.date() == opendate
             ]
 
         if closedate:
@@ -683,9 +662,7 @@ class TaskLib(object):
             for idx, task in shown_tasks:
                 if not showext:
                     for ext in self.extension_hiders:
-                        task.text = self.extension_hiders[ext].sub(
-                            "", task.text
-                        )
+                        task.text = self.extension_hiders[ext].sub("", task.text)
                 res[idx] = wrapfunc(str(task))
 
         count = len(res)
@@ -842,9 +819,7 @@ class TaskLib(object):
         elif kind == "CONTEXT":
             getter = attrgetter("contexts")
         else:
-            raise ValueError(
-                "Should pass 'project' or 'context' to get_counts"
-            )
+            raise ValueError("Should pass 'project' or 'context' to get_counts")
         res = defaultdict(Counter)
         nothing = "NO {}".format(kind)
 
