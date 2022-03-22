@@ -54,6 +54,7 @@ coverage.xml
 
 # Sphinx documentation
 taskshell/docs/_build/
+docs/_build/
 
 # PyBuilder
 target/
@@ -71,3 +72,4 @@ target/
 # Tasker local
 tasker.ini
 taskshell/tests/tmp/
+tests/tmp/

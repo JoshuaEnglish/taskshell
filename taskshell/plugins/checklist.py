@@ -30,7 +30,7 @@ GOOD = 0
 BAD = 1
 ERROR = -1
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 checklistparser = parser = argparse.ArgumentParser(
     "checklist", description="Manage checklists in the tasklist"
@@ -454,11 +454,11 @@ class ChecklistLib(object):
             self.log.error(msg)
             return ERROR, msg
         ch = etree.Element("checklist")
-        tm = etree.SubElement(ch, "_template", name=name, version="1.0")
+        tm = etree.SubElement(ch, "_template", label=name, version="1.0")
         hd = etree.SubElement(tm, "header")
-        etree.SubElement(hd, "input", idsource="true", key="thing", name="thing")
-        gr = etree.SubElement(tm, "phase", id="firstphase", name="First Phase")
-        sg = etree.SubElement(gr, "task", id="sb", name="First Subphase")
+        etree.SubElement(hd, "input", idsource="true", key="thing", label="thing")
+        gr = etree.SubElement(tm, "phase", id="firstphase", label="First Phase")
+        sg = etree.SubElement(gr, "task", id="sb", label="First Subphase")
         act = etree.SubElement(sg, "action", completed="false", dated="false")
         act.text = "First Action"
         self.checklists[name] = ch
