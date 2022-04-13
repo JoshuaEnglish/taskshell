@@ -351,7 +351,6 @@ class TaskCmd(minioncmd.BossCmd):
         Can use ~word to filter out tasks containing that word
         """
         args = commands.choices["list"].parse_args(text.split())
-        print(args)
         args.filterop = any if args.filterop else all
         if args.hidedate == datetime.date.max:
             self.lib.show_extension("hide")
@@ -391,7 +390,6 @@ class TaskCmd(minioncmd.BossCmd):
     def do_pri(self, text):
         """Prioritize a task"""
         args = commands.choices["pri"].parse_args(text.split())
-        print(args)
         res, td = self.lib.prioritize_task(
             args.tasknum, args.priority, " ".join(args.note)
         )
@@ -505,7 +503,6 @@ class TaskCmd(minioncmd.BossCmd):
 def main():
     args = parser.parse_args()
     logger.debug(args)
-    print(args)
 
     if args.verbose:
         logger.setLevel(logging.INFO)
