@@ -30,7 +30,7 @@ GOOD = 0
 BAD = 1
 ERROR = -1
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 checklistparser = parser = argparse.ArgumentParser(
     "checklist", description="Manage checklists in the tasklist"
@@ -210,7 +210,9 @@ class ChecklistCmd(minioncmd.MinionCmd):
             clist, inst, *junk = text.split(maxsplit=2)
         except ValueError as E:
             self.log.error(E)
+            self.do_help("get_header")
             return False
+
         if clist not in self.lib.checklists:
             print(f"No checklist named {clist}")
             return False
@@ -255,6 +257,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
             clist, inst, taskid, *junk = text.split(maxsplit=3)
         except ValueError as E:
             print(E)
+            self.do_help("getinfo")
             return False
         task = self.lib._get_task(clist, inst, taskid)
         if task is None:
@@ -272,6 +275,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
             clist, inst, taskid, num, *value = text.split(maxsplit=4)
         except ValueError as E:
             print(E)
+            self.do_help("fill")
             return False
         res, msg = self.lib.fill_input(clist, inst, taskid, int(num), "".join(value))
         if res:
@@ -289,6 +293,7 @@ class ChecklistCmd(minioncmd.MinionCmd):
             clist, inst, taskid, num, *stuff = text.split(maxsplit=4)
         except ValueError as E:
             print(E)
+            self.do_help("do")
             return False
         if len(stuff) == 0:
             stuff.append(datetime.date.today().isoformat())
@@ -309,11 +314,26 @@ class ChecklistCmd(minioncmd.MinionCmd):
             clist, inst, taskid, *stuff = text.split(maxsplit=3)
         except ValueError as E:
             print(E)
+            self.do_help("ignore")
             return False
         task = self.lib._get_task(clist, inst, taskid)
         res, msg = self.lib.ignore_task(task)
         self.lib._write_checklist(clist)
         print(res, msg)
+
+    def do_preview(self, text):
+        """Usage: preview CHECKLIST INSTANCE"""
+        try:
+            clist, inst, *stuff = text.split(maxsplit=2)
+        except ValueError as E:
+            print(E)
+            self.do_help("preview")
+            return False
+
+        this = self.lib._get_instance(clist, inst)
+
+        transform = etree.XSLT(instance_to_text)
+        print(transform(this))
 
 
 class TaskColorizer(etree.XSLTExtension):
@@ -333,6 +353,29 @@ class TaskColorizer(etree.XSLTExtension):
         output_parent.extend(list(self_node))
 
 
+instance_to_text = etree.XML(
+    """
+<xsl:stylesheet version="1.0"
+xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:output method="text" encoding="UTF-8" indent="no"/>
+<xsl:template match="instance">
+<xsl:value-of select="@id"/> (<xsl:value-of select="@label"/> v.<xsl:value-of select="@version"/>)
+<xsl:for-each select="header/input">
+<xsl:value-of select="@label"/>: <xsl:value-of select="text()" /><xsl:text>&#10;</xsl:text>
+</xsl:for-each>
+<xsl:for-each select="phase">
+<xsl:text>&#10;</xsl:text><xsl:value-of select="@label"/>
+--------------------
+<xsl:for-each select="task"><xsl:value-of select="@label"/> (<xsl:value-of select="@id"/>)<xsl:text>&#10;</xsl:text>
+<xsl:for-each select="action">* <xsl:value-of select="text()"/> (<xsl:value-of select="@completed"/>)
+<xsl:for-each select="input">- <xsl:value-of select="@label"/>: <xsl:value-of select="text()"/>
+</xsl:for-each>
+</xsl:for-each>
+</xsl:for-each>
+</xsl:for-each>
+</xsl:template>
+</xsl:stylesheet>"""
+)
 checklist_xslt = etree.XML(
     """
 <xsl:stylesheet version="1.0"
