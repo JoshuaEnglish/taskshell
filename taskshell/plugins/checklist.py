@@ -30,7 +30,7 @@ GOOD = 0
 BAD = 1
 ERROR = -1
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 checklistparser = parser = argparse.ArgumentParser(
     "checklist", description="Manage checklists in the tasklist"
@@ -368,8 +368,10 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 --------------------
 <xsl:for-each select="task"><xsl:value-of select="@label"/> (<xsl:value-of select="@id"/>)<xsl:text>&#10;</xsl:text>
 <xsl:for-each select="action">* <xsl:value-of select="text()"/> (<xsl:value-of select="@completed"/>)
-<xsl:for-each select="input">- <xsl:value-of select="@label"/>: <xsl:value-of select="text()"/>
 </xsl:for-each>
+<xsl:for-each select="input">- <xsl:value-of select="@label"/>: <xsl:value-of select="text()"/><xsl:text>&#10;</xsl:text>
+</xsl:for-each>
+<xsl:for-each select="information">i: <xsl:value-of select="text()"/><xsl:text>&#10;</xsl:text>
 </xsl:for-each>
 </xsl:for-each>
 </xsl:for-each>
@@ -670,7 +672,8 @@ class ChecklistLib(object):
             # complete the corresponding main task
             if task.attrib.get("uid"):
                 tasks = self._tasklib.sort_tasks(
-                    filters=[f"uid:{task.attrib.get('uid')}"]
+                    filters=[f"uid:{task.attrib.get('uid')}"],
+                    hidedate = datetime.date.max
                 )
                 if len(tasks) == 1:
                     self.log.info(

@@ -451,7 +451,7 @@ class TaskLib(object):
                 this = library.on_complete_task(this)
                 if this is None:
                     self.log.error(
-                        ("Plugin %s.on_complete_task failed " "to return task object"),
+                        ("Plugin %s.on_complete_task failed to return task object"),
                         libname,
                     )
                     raise RuntimeError(
