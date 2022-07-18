@@ -201,6 +201,7 @@ archive_cmd.add_argument(
 )
 
 proj_cmd = commands.add_parser("projects", help="print a project report")
+proj_cmd.add_argument("text", type=str, nargs="?", help="open or closed", default="")
 
 for e_point in pkg_resources.iter_entry_points("tasker_commands"):
     new_cmd = e_point.load()
@@ -451,9 +452,19 @@ class TaskCmd(minioncmd.BossCmd):
 
     def do_projects(self, text):
         "print a report of projects"
+        closed_only = "closed" in text.lower()
+        open_only = "open" in text.lower()
+        print(closed_only, open_only)
         stuff = []
         for thing, counts in self.lib.get_counts("PROJECT").items():
-            stuff.append((thing, counts["open"], counts["closed"]))
+            append = True
+            if closed_only and counts["open"] > 0:
+                append = False
+            if open_only and counts["open"] == 0:
+                append = False
+
+            if append:
+                stuff.append((thing, counts["open"], counts["closed"]))
 
         print_list(stuff, ["Project", "Open", "Closed"])
 
